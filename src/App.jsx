@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
-V4cCI6MjA5NTY5NTY0MH0.FXtDWPt1Gioz2wPbk8ZtPtxrx5tldxRGMegae-nUOUI";
 
 // ---- Supabase REST API ----
 async function sbFetch(table, options = {}) {
