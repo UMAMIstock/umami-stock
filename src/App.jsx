@@ -590,7 +590,7 @@ export default function App() {
   const [nyuka,   setNyuka]   = useState([]);
   const [kaitaku, setKaitaku] = useState([]);
   const [sold, setSold] = useState([]);
-  const [soldSummaryMode, setSoldSummaryMode] = useState("month");
+const [soldSummaryMode, setSoldSummaryMode] = useState("month");
   const [syncMsg,   setSyncMsg]   = useState("読み込み中...");
   const [syncColor, setSyncColor] = useState("#7a8599");
   const [showZaikoForm,   setShowZaikoForm]   = useState(false);
@@ -978,7 +978,7 @@ setSold(s.map(toSold));
                 </div>
 
                 {sold.length === 0
-                  ? <div style={S.empty}><div style={{fontSize:48,opacity:.4}}></div><p>販売済みデータなし</p></div>
+                  ? <div style={S.empty}><p>販売済みデータなし</p></div>
                   : <div style={S.cardGrid}>
                       {sold.map(item => (
                         <SoldCard key={item.id} item={item} onDelete={deleteSold} />
@@ -988,3 +988,7 @@ setSold(s.map(toSold));
               </div>
             );
           })()}
+                </div>
+              </div>
+            );
+          }
