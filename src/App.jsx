@@ -311,7 +311,6 @@ function ZaikoCard({ item, onDelete, onUpdate, onSold }) {
   const [buyDate, setBuyDate] = useState(item.buyDate);
   const [selling, setSelling] = useState(false);
   const [soldQty, setSoldQty] = useState(item.qty);
-  const [soldSummaryMode, setSoldSummaryMode] = useState("month");
   const [soldSell, setSoldSell] = useState(item.sell);
   const [soldDate, setSoldDate] = useState(new Date().toISOString().slice(0, 10));
 
@@ -591,6 +590,7 @@ export default function App() {
   const [nyuka,   setNyuka]   = useState([]);
   const [kaitaku, setKaitaku] = useState([]);
   const [sold, setSold] = useState([]);
+  const [soldSummaryMode, setSoldSummaryMode] = useState("month");
   const [syncMsg,   setSyncMsg]   = useState("読み込み中...");
   const [syncColor, setSyncColor] = useState("#7a8599");
   const [showZaikoForm,   setShowZaikoForm]   = useState(false);
