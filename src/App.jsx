@@ -91,6 +91,59 @@ function subtractQty(currentQty, soldQty) {
   return `${remaining}${current.unit}`;
 }
 
+function getMonthKey(date = new Date()) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function isThisMonth(dateStr) {
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  return getMonthKey(d) === getMonthKey(new Date());
+}
+
+function getThisWeekRange() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const day = today.getDay(); // 日曜0、月曜1
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + diffToMonday);
+
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23, 59, 59, 999);
+
+  return { monday, sunday };
+}
+
+function isThisWeek(dateStr) {
+  if (!dateStr) return false;
+
+  const d = new Date(dateStr);
+  const { monday, sunday } = getThisWeekRange();
+
+  return d >= monday && d <= sunday;
+}
+
+function calcSoldSummary(items, mode) {
+  const filtered = items.filter(item => {
+    if (mode === "week") return isThisWeek(item.soldDate);
+    return isThisMonth(item.soldDate);
+  });
+
+  return filtered.reduce(
+    (acc, item) => {
+      acc.sales += Number(item.sell || 0);
+      acc.profit += Number(item.profit || 0);
+      acc.count += 1;
+      return acc;
+    },
+    { sales: 0, profit: 0, count: 0 }
+  );
+}
+
 // ---- スタイル定数 ----
 const S = {
   body:        { background: "#f0f2f5", minHeight: "100vh", fontFamily: "'Noto Sans JP', sans-serif", color: "#1a1f2e" },
@@ -98,9 +151,37 @@ const S = {
   logo:        { fontFamily: "'Sora', sans-serif", fontWeight: 800, fontSize: 20, color: "#5a9e2f" },
   logoSub:     { fontWeight: 400, color: "#1a1f2e" },
   badge:       { fontSize: 11, background: "#5a9e2f", color: "#fff", padding: "2px 10px", borderRadius: 20, fontWeight: 700, letterSpacing: 1 },
-  tabs:        { display: "flex", gap: 4, padding: "16px 12px 0" },
-  tab: a =>   ({ padding: "10px 18px", borderRadius: "10px 10px 0 0", border: "1px solid #dde1e9", borderBottom: "none", background: a ? "#f7f8fa" : "#fff", color: a ? "#5a9e2f" : "#7a8599", fontSize: 14, fontWeight: a ? 700 : 500, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontFamily: "'Noto Sans JP', sans-serif" }),
-  content:     { background: "#f7f8fa", border: "1px solid #dde1e9", margin: "0 12px 32px", borderRadius: "0 12px 12px 12px", padding: "20px 16px", minHeight: 400 },
+  tabs: {
+    display: "flex",
+    gap: 0,
+    padding: "16px 6px 0",
+  },
+  tab: a => ({
+    flex: "1 1 0",
+    minWidth: 0,
+    padding: "10px 4px",
+    borderRadius: "10px 10px 0 0",
+    border: "1px solid #dde1e9",
+    borderBottom: "none",
+    background: a ? "#f7f8fa" : "#fff",
+    color: a ? "#5a9e2f" : "#7a8599",
+    fontSize: 13,
+    fontWeight: a ? 700 : 500,
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    whiteSpace: "nowrap",
+    fontFamily: "'Noto Sans JP', sans-serif"
+  }),
+  content: {
+    background: "#f7f8fa",
+    border: "1px solid #dde1e9",
+    margin: "0 6px 32px",
+    borderRadius: "0 0 12px 12px",
+    padding: "20px 12px",
+    minHeight: 400
+  },
   sectionHead: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, paddingLeft: 4 },
   sectionTitle:{ fontSize: 20, fontWeight: 700 },
   btnPrimary:  { display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 18px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", border: "none", background: "#5a9e2f", color: "#fff", fontFamily: "'Noto Sans JP', sans-serif" },
@@ -140,7 +221,58 @@ const S = {
   empty:       { textAlign: "center", padding: "60px 20px", color: "#7a8599", display: "flex", flexDirection: "column", alignItems: "center", gap: 12 },
   profitPos:   { color: "#5a9e2f", fontWeight: 700 },
   profitNeg:   { color: "#e05c2a", fontWeight: 700 },
-};
+  summaryBox: {
+  background: "#fff",
+  border: "1.5px solid #dde1e9",
+  borderRadius: 12,
+  padding: 14,
+  marginBottom: 14,
+  },
+
+  summaryTabs: {
+    display: "flex",
+    gap: 6,
+    marginBottom: 12,
+  },
+
+  summaryTab: active => ({
+    flex: 1,
+    padding: "8px 10px",
+    borderRadius: 8,
+    border: "1px solid #dde1e9",
+    background: active ? "#5a9e2f" : "#fff",
+    color: active ? "#fff" : "#7a8599",
+    fontSize: 13,
+    fontWeight: 700,
+    cursor: "pointer",
+    fontFamily: "'Noto Sans JP', sans-serif",
+  }),
+
+  summaryGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 10,
+  },
+
+  summaryItem: {
+    background: "#f7f8fa",
+    borderRadius: 10,
+    padding: 12,
+  },
+
+  summaryLabel: {
+    fontSize: 11,
+    fontWeight: 700,
+    color: "#7a8599",
+    marginBottom: 4,
+  },
+
+  summaryValue: {
+    fontSize: 18,
+    fontWeight: 800,
+    color: "#1a1f2e",
+  },
+  };
 
 // ---- 汎用カードコンポーネント ----
 function StockCard({ mainContent, subContent, detailContent }) {
@@ -179,6 +311,7 @@ function ZaikoCard({ item, onDelete, onUpdate, onSold }) {
   const [buyDate, setBuyDate] = useState(item.buyDate);
   const [selling, setSelling] = useState(false);
   const [soldQty, setSoldQty] = useState(item.qty);
+  const [soldSummaryMode, setSoldSummaryMode] = useState("month");
   const [soldSell, setSoldSell] = useState(item.sell);
   const [soldDate, setSoldDate] = useState(new Date().toISOString().slice(0, 10));
 
@@ -200,10 +333,10 @@ function ZaikoCard({ item, onDelete, onUpdate, onSold }) {
   return (
     <StockCard
       mainContent={
-  <div style={{ ...S.cardName, textAlign: "left", width: "100%" }}>
-    {item.name}
-  </div>
-}
+        <div style={{ ...S.cardName, textAlign: "left", width: "100%" }}>
+          {item.name}
+        </div>
+      }
       subContent={
         <div style={{ display: "flex", alignItems: "center", gap: 10, overflow: "hidden" }}>
           <span style={S.cardQty}>{item.qty || "—"}</span>
@@ -366,8 +499,19 @@ function KaitakuCard({ item, onDelete, onUpdate }) {
   </div>
 }
       subContent={
-        <div style={{ fontSize: 12, color: "#7a8599", fontWeight: 600 }}>
-          {item.memo ? "メモあり" : "メモなし"}
+        <div
+          style={{
+            fontSize: 12,
+            color: "#7a8599",
+            fontWeight: 600,
+            lineHeight: 1.5,
+            textAlign: "left",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {item.memo || item.url || "詳細なし"}
         </div>
       }
       detailContent={
@@ -398,11 +542,11 @@ function KaitakuCard({ item, onDelete, onUpdate }) {
   );
 }
 
-function SoldCard({ item }) {
+function SoldCard({ item, onDelete }) {
   return (
     <StockCard
       mainContent={
-        <div style={{ ...S.cardName }}>
+        <div style={{ ...S.cardName, textAlign: "left", width: "100%" }}>
           {item.name}
         </div>
       }
@@ -430,6 +574,10 @@ function SoldCard({ item }) {
               <span style={S.dk}>{k}</span><span style={S.dv}>{v}</span>
             </div>
           ))}
+
+          <button style={S.btnDel} onClick={() => onDelete(item.id)}>
+            削除
+          </button>
         </>
       }
     />
@@ -653,6 +801,18 @@ setSold(s.map(toSold));
   };
 
   // ---- レンダリング ----
+  const deleteSold = async (id) => {
+    if (!confirm("販売済みデータを削除しますか？")) return;
+
+    showSync("削除中...", "#7a8599", false);
+
+    try {
+      await sbFetch("sold", { method: "DELETE", params: `?id=eq.${id}` });
+      await loadAll();
+    } catch (e) {
+      showSync("⚠ 削除失敗: " + e.message, "#e05c2a", false);
+    }
+  };
   return (
     <div style={S.body}>
       <header style={S.header}>
@@ -767,19 +927,64 @@ setSold(s.map(toSold));
           </div>
         )}
         {/* 販売済み */}
-{tab === "sold" && (
-  <div>
-    <div style={S.sectionHead}>
-      <div style={S.sectionTitle}>販売済み</div>
-    </div>
+          {tab === "sold" && (() => {
+            const summary = calcSoldSummary(sold, soldSummaryMode);
 
-    {sold.length === 0
-      ? <div style={S.empty}><div style={{fontSize:48,opacity:.4}}>✅</div><p>販売済みデータなし</p></div>
-      : <div style={S.cardGrid}>{sold.map(item => <SoldCard key={item.id} item={item} />)}</div>
-    }
-  </div>
-)}
-      </div>
-    </div>
-  );
-}
+            return (
+              <div>
+                <div style={S.sectionHead}>
+                  <div style={S.sectionTitle}>販売済み</div>
+                </div>
+
+                <div style={S.summaryBox}>
+                  <div style={S.summaryTabs}>
+                    <button
+                      style={S.summaryTab(soldSummaryMode === "month")}
+                      onClick={() => setSoldSummaryMode("month")}
+                    >
+                      今月
+                    </button>
+                    <button
+                      style={S.summaryTab(soldSummaryMode === "week")}
+                      onClick={() => setSoldSummaryMode("week")}
+                    >
+                      今週
+                    </button>
+                  </div>
+
+                  <div style={S.summaryGrid}>
+                    <div style={S.summaryItem}>
+                      <div style={S.summaryLabel}>
+                        {soldSummaryMode === "month" ? "今月売上" : "今週売上"}
+                      </div>
+                      <div style={S.summaryValue}>
+                        ¥{summary.sales.toLocaleString()}
+                      </div>
+                    </div>
+
+                    <div style={S.summaryItem}>
+                      <div style={S.summaryLabel}>
+                        {soldSummaryMode === "month" ? "今月粗利" : "今週粗利"}
+                      </div>
+                      <div style={summary.profit >= 0 ? S.profitPos : S.profitNeg}>
+                        ¥{summary.profit.toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: 10, fontSize: 12, color: "#7a8599", fontWeight: 600 }}>
+                    件数：{summary.count}件
+                  </div>
+                </div>
+
+                {sold.length === 0
+                  ? <div style={S.empty}><div style={{fontSize:48,opacity:.4}}></div><p>販売済みデータなし</p></div>
+                  : <div style={S.cardGrid}>
+                      {sold.map(item => (
+                        <SoldCard key={item.id} item={item} onDelete={deleteSold} />
+                      ))}
+                    </div>
+                }
+              </div>
+            );
+          })()}
