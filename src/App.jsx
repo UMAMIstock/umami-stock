@@ -28,6 +28,16 @@ async function sbFetch(table, options = {}) {
 const toZaiko   = r => ({ id: r.id, name: r.name, qty: r.qty || "", buy: r.buy || 0, sell: r.sell || 0, buyDate: r.buy_date || "" });
 const toNyuka   = r => ({ id: r.id, name: r.name, qty: r.qty || "", date: r.date || "", place: r.place || "", buy: r.buy || 0 });
 const toKaitaku = r => ({ id: r.id, title: r.title, memo: r.memo || "", url: r.url || "" });
+const toSold = r => ({
+  id: r.id,
+  sourceId: r.source_id,
+  name: r.name,
+  qty: r.qty || "",
+  buy: r.buy || 0,
+  sell: r.sell || 0,
+  profit: r.profit || 0,
+  soldDate: r.sold_date || "",
+});
 
 // ---- ユーティリティ ----
 function daysSince(dateStr) {
@@ -57,6 +67,30 @@ function formatDate(dateStr) {
   return new Date(dateStr).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric", weekday: "short" });
 }
 
+function parseQty(qtyStr) {
+  const match = String(qtyStr || "").trim().match(/^(\d+(?:\.\d+)?)(.*)$/);
+  if (!match) return null;
+
+  return {
+    num: parseFloat(match[1]),
+    unit: match[2].trim(),
+  };
+}
+
+function subtractQty(currentQty, soldQty) {
+  const current = parseQty(currentQty);
+  const sold = parseQty(soldQty);
+
+  if (!current || !sold) return currentQty;
+  if (current.unit !== sold.unit) return currentQty;
+
+  const remaining = current.num - sold.num;
+
+  if (remaining <= 0) return "";
+
+  return `${remaining}${current.unit}`;
+}
+
 // ---- スタイル定数 ----
 const S = {
   body:        { background: "#f0f2f5", minHeight: "100vh", fontFamily: "'Noto Sans JP', sans-serif", color: "#1a1f2e" },
@@ -76,9 +110,9 @@ const S = {
   btnUrl:      { display: "block", width: "100%", textAlign: "center", marginTop: 8, padding: 7, borderRadius: 7, border: "1.5px solid #dde1e9", background: "rgba(0,0,0,0.04)", color: "#7a8599", fontSize: 12, fontWeight: 700, textDecoration: "none", boxSizing: "border-box" },
   cardGrid:    { display: "grid", gridTemplateColumns: "1fr", gap: 10 },
   card:        { background: "#fff", border: "1.5px solid #dde1e9", borderRadius: 12, overflow: "hidden", width: "100%", boxSizing: "border-box" },
-  cardMain:    { padding: "14px 16px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 },
-  cardName:    { fontSize: 15, fontWeight: 800, color: "#5a9e2f", lineHeight: 1.2 },
-  cardQty:     { fontSize: 17, fontWeight: 700, color: "#1a1f2e" },
+  cardMain:    { padding: "14px 16px", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "stretch", gap: 8 },
+  cardName:    { fontSize: 15, fontWeight: 800, color: "#5a9e2f", lineHeight: 1.35, wordBreak: "break-word" },
+  cardQty:     { fontSize: 15, fontWeight: 700, color: "#1a1f2e" },
   cardDetail:  { borderTop: "1px solid #dde1e9", padding: "12px 14px 14px" },
   detailRow:   { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", fontSize: 13, borderBottom: "1px solid rgba(200,210,220,0.4)" },
   dk:          { color: "#7a8599", fontSize: 11, fontWeight: 700 },
@@ -87,11 +121,11 @@ const S = {
   formGrid:    { display: "grid", gridTemplateColumns: "1fr", gap: 14 },
   formGroup:   { display: "flex", flexDirection: "column", gap: 6 },
   label:       { fontSize: 11, fontWeight: 700, color: "#7a8599", letterSpacing: 1, textTransform: "uppercase" },
-  input:       { background: "#fff", border: "1px solid #dde1e9", color: "#1a1f2e", padding: "9px 12px", borderRadius: 7, fontSize: 16, fontFamily: "'Noto Sans JP', sans-serif", outline: "none", width: "100%", maxWidth: "100%", boxSizing: "border-box", appearance: "none" },
-  textarea:    { background: "#fff", border: "1px solid #dde1e9", color: "#1a1f2e", padding: "9px 12px", borderRadius: 7, fontSize: 16, fontFamily: "'Noto Sans JP', sans-serif", outline: "none", width: "100%", maxWidth: "100%", minHeight: 80, resize: "vertical", boxSizing: "border-box" },
-  select:      { background: "#fff", border: "1px solid #dde1e9", color: "#1a1f2e", padding: "9px 12px", borderRadius: 7, fontSize: 16, fontFamily: "'Noto Sans JP', sans-serif", outline: "none", width: "100%", maxWidth: "100%", boxSizing: "border-box" },
+  input:       { background: "#fff", border: "1px solid #dde1e9", color: "#1a1f2e", padding: "9px 12px", borderRadius: 7, fontSize: 16, lineHeight: "22px", height: 42, fontFamily: "'Noto Sans JP', sans-serif", outline: "none", width: "100%", maxWidth: "100%", boxSizing: "border-box", appearance: "none" },
+  textarea:    { background: "#fff", border: "1px solid #dde1e9", color: "#1a1f2e", padding: "9px 12px", borderRadius: 7, fontSize: 16, lineHeight: "22px", fontFamily: "'Noto Sans JP', sans-serif", outline: "none", width: "100%", maxWidth: "100%", minHeight: 80, resize: "vertical", boxSizing: "border-box" },
+  select:      { background: "#fff", border: "1px solid #dde1e9", color: "#1a1f2e", padding: "9px 12px", borderRadius: 7, fontSize: 16, lineHeight: "22px", height: 42, fontFamily: "'Noto Sans JP', sans-serif", outline: "none", width: "100%", maxWidth: "100%", boxSizing: "border-box" },
   editInline:  { marginTop: 10, display: "flex", flexDirection: "column", gap: 7 },
-  editInput:   { padding: "8px 10px", fontSize: 16, borderRadius: 6, border: "1px solid #dde1e9", background: "#f0f2f5", color: "#1a1f2e", fontFamily: "'Noto Sans JP', sans-serif", width: "100%", maxWidth: "100%", boxSizing: "border-box", appearance: "none" },
+  editInput:   { padding: "8px 10px", fontSize: 16, lineHeight: "22px", minHeight: 42, borderRadius: 6, border: "1px solid #dde1e9", background: "#f0f2f5", color: "#1a1f2e", fontFamily: "'Noto Sans JP', sans-serif", width: "100%", maxWidth: "100%", boxSizing: "border-box", appearance: "none" },
   editBtns:    { display: "flex", gap: 6 },
   editSave:    { flex: 1, padding: 6, borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", background: "#5a9e2f", color: "#fff", border: "none", fontFamily: "'Noto Sans JP', sans-serif" },
   editCancel:  { flex: 1, padding: 6, borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", background: "#f0f2f5", color: "#7a8599", border: "1px solid #dde1e9", fontFamily: "'Noto Sans JP', sans-serif" },
@@ -101,16 +135,27 @@ const S = {
 };
 
 // ---- 汎用カードコンポーネント ----
-function StockCard({ mainContent, detailContent }) {
+function StockCard({ mainContent, subContent, detailContent }) {
   const [open, setOpen] = useState(false);
+
   return (
     <div style={{ ...S.card, borderColor: open ? "#5a9e2f" : "#dde1e9" }}>
       <div style={S.cardMain} onClick={() => setOpen(o => !o)}>
-        {mainContent}
-        <span style={{ fontSize: 11, color: "#7a8599", whiteSpace: "nowrap", flexShrink: 0 }}>
-          詳細 <span style={{ display: "inline-block", transition: "transform .2s", transform: open ? "rotate(180deg)" : "none" }}>▼</span>
-        </span>
+        <div style={{ width: "100%" }}>
+          {mainContent}
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, width: "100%" }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {subContent}
+          </div>
+
+          <span style={{ fontSize: 11, color: "#7a8599", whiteSpace: "nowrap", flexShrink: 0 }}>
+            詳細 <span style={{ display: "inline-block", transition: "transform .2s", transform: open ? "rotate(180deg)" : "none" }}>▼</span>
+          </span>
+        </div>
       </div>
+
       {open && <div style={S.cardDetail}>{detailContent}</div>}
     </div>
   );
@@ -143,12 +188,14 @@ function ZaikoCard({ item, onDelete, onUpdate }) {
   return (
     <StockCard
       mainContent={
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", gap: 8, overflow: "hidden" }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 8, overflow: "hidden" }}>
-            <div style={{ ...S.cardName, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.name}</div>
-            <div style={S.cardQty}>{item.qty || "—"}</div>
-          </div>
-          {ds && <span style={{ fontSize: 11, color: ds.color, fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0 }}>{ds.label}</span>}
+        <div style={{ ...S.cardName }}>
+          {item.name}
+        </div>
+      }
+      subContent={
+        <div style={{ display: "flex", alignItems: "center", gap: 10, overflow: "hidden" }}>
+          <span style={S.cardQty}>{item.qty || "—"}</span>
+          {ds && <span style={{ fontSize: 11, color: ds.color, fontWeight: 600, whiteSpace: "nowrap" }}>{ds.label}</span>}
         </div>
       }
       detailContent={
@@ -206,12 +253,14 @@ function NyukaCard({ item, onDelete, onUpdate, onNyukazumi }) {
   return (
     <StockCard
       mainContent={
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", gap: 8, overflow: "hidden" }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 8, overflow: "hidden" }}>
-            <div style={{ ...S.cardName, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.name}</div>
-            <div style={S.cardQty}>{item.qty || "—"}</div>
-          </div>
-          {dl && <span style={{ fontSize: 11, color: dl.color, fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0 }}>{dl.label}</span>}
+        <div style={{ ...S.cardName }}>
+          {item.name}
+        </div>
+      }
+      subContent={
+        <div style={{ display: "flex", alignItems: "center", gap: 10, overflow: "hidden" }}>
+          <span style={S.cardQty}>{item.qty || "—"}</span>
+          {dl && <span style={{ fontSize: 11, color: dl.color, fontWeight: 600, whiteSpace: "nowrap" }}>{dl.label}</span>}
         </div>
       }
       detailContent={
@@ -232,7 +281,7 @@ function NyukaCard({ item, onDelete, onUpdate, onNyukazumi }) {
               <input style={S.editInput} value={date}  onChange={e => setDate(e.target.value)}  type="date" />
               <select style={{ ...S.editInput }} value={place} onChange={e => setPlace(e.target.value)}>
                 <option value="市場">🏪 市場</option>
-                <option value="ヤマト">📮 ヤマト</option>
+                <option value="ヤマト">📮箱 ヤマト</option>
               </select>
               <input style={S.editInput} value={buy} onChange={e => setBuy(e.target.value)} type="number" placeholder="仕入れ値" />
               <div style={S.editBtns}>
@@ -266,8 +315,13 @@ function KaitakuCard({ item, onDelete, onUpdate }) {
   return (
     <StockCard
       mainContent={
-        <div style={{ overflow: "hidden", width: "100%" }}>
-          <div style={{ ...S.cardName, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</div>
+        <div style={{ ...S.cardName }}>
+          {item.title}
+        </div>
+      }
+      subContent={
+        <div style={{ fontSize: 12, color: "#7a8599", fontWeight: 600 }}>
+          {item.memo ? "メモあり" : "メモなし"}
         </div>
       }
       detailContent={
@@ -292,6 +346,44 @@ function KaitakuCard({ item, onDelete, onUpdate }) {
             <button style={{ ...S.btnEdit, marginTop: item.url ? 8 : 10 }} onClick={() => setEditing(true)}>編集</button>
           )}
           <button style={S.btnDel} onClick={() => onDelete(item.id)}>削除</button>
+        </>
+      }
+    />
+  );
+}
+
+function SoldCard({ item }) {
+  return (
+    <StockCard
+      mainContent={
+        <div style={{ ...S.cardName }}>
+          {item.name}
+        </div>
+      }
+      subContent={
+        <div style={{ display: "flex", alignItems: "center", gap: 10, overflow: "hidden" }}>
+          <span style={S.cardQty}>{item.qty || "—"}</span>
+          <span style={{ fontSize: 11, color: "#7a8599", fontWeight: 600, whiteSpace: "nowrap" }}>
+            {formatDate(item.soldDate)}
+          </span>
+        </div>
+      }
+      detailContent={
+        <>
+          {[
+            ["商品名", item.name || "—"],
+            ["数量", item.qty || "—"],
+            ["仕入れ値", item.buy ? `¥${item.buy.toLocaleString()}` : "—"],
+            ["売り値", item.sell ? `¥${item.sell.toLocaleString()}` : "—"],
+            ["粗利", <span style={item.profit > 0 ? S.profitPos : item.profit < 0 ? S.profitNeg : {}}>
+              {item.profit >= 0 ? "+¥" : "¥"}{item.profit.toLocaleString()}
+            </span>],
+            ["販売日", formatDate(item.soldDate)],
+          ].map(([k, v], i, a) => (
+            <div key={k} style={{ ...S.detailRow, borderBottom: i === a.length - 1 ? "none" : undefined }}>
+              <span style={S.dk}>{k}</span><span style={S.dv}>{v}</span>
+            </div>
+          ))}
         </>
       }
     />
@@ -416,7 +508,7 @@ export default function App() {
 
   // ④ 入荷済み処理
   const handleNyukazumi = async (item) => {
-    if (!confirm(`「${item.name}」を入荷済みにして在庫に移しますか？`)) return;
+    if (!confirm(`入荷済みにしますか？`)) return;
     showSync("処理中...", "#7a8599", false);
     try {
       await sbFetch("zaiko", {
@@ -479,7 +571,7 @@ export default function App() {
       </header>
 
       <div style={S.tabs}>
-        {[["zaiko","📦","在庫"],["nyuka","🚚","入荷予定"],["kaitaku","🔍","新規開拓"]].map(([key,icon,label]) => (
+        {[["zaiko","在庫"],["nyuka","入荷予定"],["kaitaku","新規開拓"]].map(([key,icon,label]) => (
           <button key={key} style={S.tab(tab===key)} onClick={() => setTab(key)}>{icon} {label}</button>
         ))}
       </div>
@@ -494,7 +586,7 @@ export default function App() {
               <button style={S.btnPrimary} onClick={() => setShowZaikoForm(v => !v)}>＋ 追加</button>
             </div>
             {zaiko.length === 0
-              ? <div style={S.empty}><div style={{fontSize:48,opacity:.4}}>📦</div><p>在庫データなし</p></div>
+              ? <div style={S.empty}><p>在庫データなし</p></div>
               : <div style={S.cardGrid}>{zaiko.map(item => <ZaikoCard key={item.id} item={item} onDelete={deleteZaiko} onUpdate={updateZaiko} />)}</div>
             }
             {showZaikoForm && (
@@ -520,7 +612,7 @@ export default function App() {
               <button style={S.btnPrimary} onClick={() => setShowNyukaForm(v => !v)}>＋ 追加</button>
             </div>
             {nyuka.length === 0
-              ? <div style={S.empty}><div style={{fontSize:48,opacity:.4}}>🚚</div><p>入荷予定データなし</p></div>
+              ? <div style={S.empty}><p>入荷予定データなし</p></div>
               : <div style={S.cardGrid}>{nyuka.map(item => <NyukaCard key={item.id} item={item} onDelete={deleteNyuka} onUpdate={updateNyuka} onNyukazumi={handleNyukazumi}/>)}</div>
             }
             {showNyukaForm && (
@@ -553,7 +645,7 @@ export default function App() {
               <button style={S.btnPrimary} onClick={() => setShowKaitakuForm(v => !v)}>＋ 追加</button>
             </div>
             {kaitaku.length === 0
-              ? <div style={S.empty}><div style={{fontSize:48,opacity:.4}}>🔍</div><p>新規開拓メモなし</p></div>
+              ? <div style={S.empty}><p>新規開拓メモなし</p></div>
               : <div style={S.cardGrid}>{kaitaku.map(item => <KaitakuCard key={item.id} item={item} onDelete={deleteKaitaku} onUpdate={updateKaitaku}/>)}</div>
             }
             {showKaitakuForm && (
