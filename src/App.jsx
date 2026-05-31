@@ -110,7 +110,7 @@ const S = {
   btnUrl:      { display: "block", width: "100%", textAlign: "center", marginTop: 8, padding: 7, borderRadius: 7, border: "1.5px solid #dde1e9", background: "rgba(0,0,0,0.04)", color: "#7a8599", fontSize: 12, fontWeight: 700, textDecoration: "none", boxSizing: "border-box" },
   cardGrid:    { display: "grid", gridTemplateColumns: "1fr", gap: 10 },
   card:        { background: "#fff", border: "1.5px solid #dde1e9", borderRadius: 12, overflow: "hidden", width: "100%", boxSizing: "border-box" },
-  cardMain:    cardMain: {
+  cardMain: {
   padding: "14px 16px",
   cursor: "pointer",
   display: "flex",
@@ -170,13 +170,17 @@ function StockCard({ mainContent, subContent, detailContent }) {
 }
 
 // ---- 在庫カード（③ 仕入日編集対応）----
-function ZaikoCard({ item, onDelete, onUpdate }) {
+function ZaikoCard({ item, onDelete, onUpdate, onSold }) {
   const [editing, setEditing] = useState(false);
   const [name,    setName]    = useState(item.name);
   const [qty,     setQty]     = useState(item.qty);
   const [buy,     setBuy]     = useState(item.buy);
   const [sell,    setSell]    = useState(item.sell);
   const [buyDate, setBuyDate] = useState(item.buyDate);
+  const [selling, setSelling] = useState(false);
+  const [soldQty, setSoldQty] = useState(item.qty);
+  const [soldSell, setSoldSell] = useState(item.sell);
+  const [soldDate, setSoldDate] = useState(new Date().toISOString().slice(0, 10));
 
   const profit = (item.sell || 0) - (item.buy || 0);
   const ds = daysSince(item.buyDate);
@@ -235,6 +239,40 @@ function ZaikoCard({ item, onDelete, onUpdate }) {
             </div>
           ) : (
             <button style={S.btnEdit} onClick={() => setEditing(true)}>編集</button>
+          )}
+          {selling ? (
+            <div style={S.editInline}>
+              <input
+                style={S.editInput}
+                value={soldQty}
+                onChange={e => setSoldQty(e.target.value)}
+                placeholder="販売数量 例：1kg"
+              />
+              <input
+                style={S.editInput}
+                value={soldSell}
+                onChange={e => setSoldSell(e.target.value)}
+                type="number"
+                placeholder="売り値"
+              />
+              <input
+                style={S.editInput}
+                value={soldDate}
+                onChange={e => setSoldDate(e.target.value)}
+                type="date"
+              />
+              <div style={S.editBtns}>
+                <button
+                  style={S.editSave}
+                  onClick={() => onSold(item, { qty: soldQty, sell: parseFloat(soldSell) || 0, soldDate })}
+                >
+                  販売済みにする
+                </button>
+                <button style={S.editCancel} onClick={() => setSelling(false)}>キャンセル</button>
+              </div>
+            </div>
+          ) : (
+            <button style={S.btnNyuka} onClick={() => setSelling(true)}>販売済み</button>
           )}
           <button style={S.btnDel} onClick={() => onDelete(item.id)}>削除</button>
         </>
@@ -438,9 +476,6 @@ setZaiko(z.map(toZaiko));
 setNyuka(n.map(toNyuka));
 setKaitaku(k.map(toKaitaku));
 setSold(s.map(toSold));
-      setZaiko(z.map(toZaiko));
-      setNyuka(n.map(toNyuka));
-      setKaitaku(k.map(toKaitaku));
       showSync("✓ 同期済み", "#5a9e2f");
     } catch (e) {
       showSync("⚠ 読み込み失敗: " + e.message, "#e05c2a", false);
@@ -487,6 +522,49 @@ setSold(s.map(toSold));
       await loadAll();
     } catch (e) { showSync("⚠ 保存失敗: " + e.message, "#e05c2a", false); }
   };
+
+  const handleSold = async (item, sale) => {
+  if (!sale.qty.trim()) return alert("販売数量を入力してください");
+  if (!confirm(`「${item.name}」を販売済みにしますか？`)) return;
+
+  showSync("販売処理中...", "#7a8599", false);
+
+  try {
+    const soldBuy = item.buy || 0;
+    const soldSell = sale.sell || item.sell || 0;
+    const profit = soldSell - soldBuy;
+    const remainingQty = subtractQty(item.qty, sale.qty);
+
+    await sbFetch("sold", {
+      method: "POST",
+      body: {
+        id: Date.now(),
+        source_id: item.id,
+        name: item.name,
+        qty: sale.qty,
+        buy: soldBuy,
+        sell: soldSell,
+        profit,
+        sold_date: sale.soldDate || new Date().toISOString().slice(0, 10),
+      },
+    });
+
+    if (!remainingQty) {
+      await sbFetch("zaiko", { method: "DELETE", params: `?id=eq.${item.id}` });
+    } else {
+      await sbFetch("zaiko", {
+        method: "PATCH",
+        params: `?id=eq.${item.id}`,
+        body: { qty: remainingQty },
+      });
+    }
+
+    setTab("sold");
+    await loadAll();
+  } catch (e) {
+    showSync("⚠ 販売処理失敗: " + e.message, "#e05c2a", false);
+  }
+};
 
   // ---- 入荷予定CRUD ----
   const addNyuka = async () => {
@@ -586,8 +664,15 @@ setSold(s.map(toSold));
       </header>
 
       <div style={S.tabs}>
-        {[["zaiko","在庫"],["nyuka","入荷予定"],["kaitaku","新規開拓"],["sold","販売済み"]].map(([key,icon,label]) => (
-          <button key={key} style={S.tab(tab===key)} onClick={() => setTab(key)}>{icon} {label}</button>
+        {[
+          ["zaiko", "在庫"],
+          ["nyuka", "入荷予定"],
+          ["kaitaku", "新規開拓"],
+          ["sold", "販売済み"]
+        ].map(([key, label]) => (
+          <button key={key} style={S.tab(tab === key)} onClick={() => setTab(key)}>
+            {label}
+          </button>
         ))}
       </div>
 
