@@ -145,11 +145,48 @@ function calcSoldSummary(items, mode) {
 }
 
 // ---- スタイル定数 ----
+const T = {
+  bg: "#f8fbf8",
+  panel: "#f8fbf8",
+  card: "#ffffff",
+  text: "#2b241c",
+  muted: "#7a6f64",
+  border: "#ded6c9",
+  primary: "#82ae46",
+  primaryDark: "#55722e",
+  danger: "#e05c2a",
+  blue: "#3a8ef6",
+};
 const S = {
-  body:        { background: "#f0f2f5", minHeight: "100vh", fontFamily: "'Noto Sans JP', sans-serif", color: "#1a1f2e" },
-  header:      { position: "sticky", top: 0, zIndex: 100, background: "rgba(240,242,245,0.95)", backdropFilter: "blur(12px)", borderBottom: "1px solid #dde1e9", padding: "0 16px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 64 },
-  logo:        { fontFamily: "'Sora', sans-serif", fontWeight: 800, fontSize: 20, color: "#5a9e2f" },
-  logoSub:     { fontWeight: 400, color: "#1a1f2e" },
+  body: {
+    background: T.bg,
+    minHeight: "100vh",
+    fontFamily: "'Noto Sans JP', sans-serif",
+    color: T.text
+  },
+  header: {
+    position: "sticky",
+    top: 0,
+    zIndex: 100,
+    background: "rgba(245,241,232,0.95)",
+    backdropFilter: "blur(12px)",
+    borderBottom: `1px solid ${T.border}`,
+    padding: "0 16px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    height: 64
+  },
+  logo: {
+    fontFamily: "'Sora', sans-serif",
+    fontWeight: 800,
+    fontSize: 20,
+    color: T.primary
+  },
+  logoSub: {
+    fontWeight: 400,
+    color: T.text
+  },
   badge:       { fontSize: 11, background: "#5a9e2f", color: "#fff", padding: "2px 10px", borderRadius: 20, fontWeight: 700, letterSpacing: 1 },
   tabs: {
     display: "flex",
@@ -175,8 +212,8 @@ const S = {
     fontFamily: "'Noto Sans JP', sans-serif"
   }),
   content: {
-    background: "#f7f8fa",
-    border: "1px solid #dde1e9",
+    background: T.panel,
+    border: `1px solid ${T.border}`,
     margin: "0 6px 32px",
     borderRadius: "0 0 12px 12px",
     padding: "20px 12px",
@@ -190,7 +227,14 @@ const S = {
   btnNyuka:    { width: "100%", marginTop: 6, padding: 7, borderRadius: 7, border: "1.5px solid rgba(58,142,246,0.3)", background: "rgba(58,142,246,0.08)", color: "#3a8ef6", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "'Noto Sans JP', sans-serif" },
   btnUrl:      { display: "block", width: "100%", textAlign: "center", marginTop: 8, padding: 7, borderRadius: 7, border: "1.5px solid #dde1e9", background: "rgba(0,0,0,0.04)", color: "#7a8599", fontSize: 12, fontWeight: 700, textDecoration: "none", boxSizing: "border-box" },
   cardGrid:    { display: "grid", gridTemplateColumns: "1fr", gap: 10 },
-  card:        { background: "#fff", border: "1.5px solid #dde1e9", borderRadius: 12, overflow: "hidden", width: "100%", boxSizing: "border-box" },
+  card: {
+    background: T.card,
+    border: `1.5px solid ${T.border}`,
+    borderRadius: 12,
+    overflow: "hidden",
+    width: "100%",
+    boxSizing: "border-box"
+  },
   cardMain: {
   padding: "14px 16px",
   cursor: "pointer",
@@ -200,12 +244,30 @@ const S = {
   justifyContent: "flex-start",
   gap: 8
 },
-  cardName:    { fontSize: 15, fontWeight: 800, color: "#5a9e2f", lineHeight: 1.35, wordBreak: "break-word" },
-  cardQty:     { fontSize: 15, fontWeight: 700, color: "#1a1f2e" },
+  cardName: {
+    fontSize: 15,
+    fontWeight: 800,
+    color: T.primary,
+    lineHeight: 1.35,
+    wordBreak: "break-word"
+  },
+  cardQty: {
+    fontSize: 15,
+    fontWeight: 700,
+    color: T.text
+  },
   cardDetail:  { borderTop: "1px solid #dde1e9", padding: "12px 14px 14px" },
   detailRow:   { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", fontSize: 13, borderBottom: "1px solid rgba(200,210,220,0.4)" },
-  dk:          { color: "#7a8599", fontSize: 11, fontWeight: 700 },
-  dv:          { fontWeight: 600, color: "#1a1f2e" },
+  dk: {
+    color: T.muted,
+    fontSize: 11,
+    fontWeight: 700
+  },
+
+  dv: {
+    fontWeight: 600,
+    color: T.text
+  },
   formBox:     { background: "#fff", border: "1px solid #dde1e9", borderRadius: 10, padding: 20, marginTop: 20 },
   formGrid:    { display: "grid", gridTemplateColumns: "1fr", gap: 14 },
   formGroup:   { display: "flex", flexDirection: "column", gap: 6 },
@@ -219,8 +281,15 @@ const S = {
   editSave:    { flex: 1, padding: 6, borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", background: "#5a9e2f", color: "#fff", border: "none", fontFamily: "'Noto Sans JP', sans-serif" },
   editCancel:  { flex: 1, padding: 6, borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", background: "#f0f2f5", color: "#7a8599", border: "1px solid #dde1e9", fontFamily: "'Noto Sans JP', sans-serif" },
   empty:       { textAlign: "center", padding: "60px 20px", color: "#7a8599", display: "flex", flexDirection: "column", alignItems: "center", gap: 12 },
-  profitPos:   { color: "#5a9e2f", fontWeight: 700 },
-  profitNeg:   { color: "#e05c2a", fontWeight: 700 },
+  profitPos: {
+    color: T.primary,
+    fontWeight: 700
+  },
+
+  profitNeg: {
+    color: T.danger,
+    fontWeight: 700
+  },
   summaryBox: {
   background: "#fff",
   border: "1.5px solid #dde1e9",
