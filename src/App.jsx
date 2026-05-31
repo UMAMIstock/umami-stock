@@ -110,7 +110,15 @@ const S = {
   btnUrl:      { display: "block", width: "100%", textAlign: "center", marginTop: 8, padding: 7, borderRadius: 7, border: "1.5px solid #dde1e9", background: "rgba(0,0,0,0.04)", color: "#7a8599", fontSize: 12, fontWeight: 700, textDecoration: "none", boxSizing: "border-box" },
   cardGrid:    { display: "grid", gridTemplateColumns: "1fr", gap: 10 },
   card:        { background: "#fff", border: "1.5px solid #dde1e9", borderRadius: 12, overflow: "hidden", width: "100%", boxSizing: "border-box" },
-  cardMain:    { padding: "14px 16px", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "stretch", gap: 8 },
+  cardMain:    cardMain: {
+  padding: "14px 16px",
+  cursor: "pointer",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "stretch",
+  justifyContent: "flex-start",
+  gap: 8
+},
   cardName:    { fontSize: 15, fontWeight: 800, color: "#5a9e2f", lineHeight: 1.35, wordBreak: "break-word" },
   cardQty:     { fontSize: 15, fontWeight: 700, color: "#1a1f2e" },
   cardDetail:  { borderTop: "1px solid #dde1e9", padding: "12px 14px 14px" },
@@ -188,10 +196,10 @@ function ZaikoCard({ item, onDelete, onUpdate }) {
   return (
     <StockCard
       mainContent={
-        <div style={{ ...S.cardName }}>
-          {item.name}
-        </div>
-      }
+  <div style={{ ...S.cardName, textAlign: "left", width: "100%" }}>
+    {item.name}
+  </div>
+}
       subContent={
         <div style={{ display: "flex", alignItems: "center", gap: 10, overflow: "hidden" }}>
           <span style={S.cardQty}>{item.qty || "—"}</span>
@@ -253,10 +261,10 @@ function NyukaCard({ item, onDelete, onUpdate, onNyukazumi }) {
   return (
     <StockCard
       mainContent={
-        <div style={{ ...S.cardName }}>
-          {item.name}
-        </div>
-      }
+  <div style={{ ...S.cardName, textAlign: "left", width: "100%" }}>
+    {item.name}
+  </div>
+}
       subContent={
         <div style={{ display: "flex", alignItems: "center", gap: 10, overflow: "hidden" }}>
           <span style={S.cardQty}>{item.qty || "—"}</span>
@@ -315,10 +323,10 @@ function KaitakuCard({ item, onDelete, onUpdate }) {
   return (
     <StockCard
       mainContent={
-        <div style={{ ...S.cardName }}>
-          {item.title}
-        </div>
-      }
+  <div style={{ ...S.cardName, textAlign: "left", width: "100%" }}>
+    {item.title}
+  </div>
+}
       subContent={
         <div style={{ fontSize: 12, color: "#7a8599", fontWeight: 600 }}>
           {item.memo ? "メモあり" : "メモなし"}
@@ -396,6 +404,7 @@ export default function App() {
   const [zaiko,   setZaiko]   = useState([]);
   const [nyuka,   setNyuka]   = useState([]);
   const [kaitaku, setKaitaku] = useState([]);
+  const [sold, setSold] = useState([]);
   const [syncMsg,   setSyncMsg]   = useState("読み込み中...");
   const [syncColor, setSyncColor] = useState("#7a8599");
   const [showZaikoForm,   setShowZaikoForm]   = useState(false);
@@ -418,11 +427,17 @@ export default function App() {
   const loadAll = useCallback(async () => {
     showSync("読み込み中...", "#7a8599", false);
     try {
-      const [z, n, k] = await Promise.all([
-        sbFetch("zaiko",   { params: "?order=id.asc" }),
-        sbFetch("nyuka",   { params: "?order=date.asc" }),
-        sbFetch("kaitaku", { params: "?order=id.asc" }),
-      ]);
+      const [z, n, k, s] = await Promise.all([
+  sbFetch("zaiko",   { params: "?order=id.asc" }),
+  sbFetch("nyuka",   { params: "?order=date.asc" }),
+  sbFetch("kaitaku", { params: "?order=id.asc" }),
+  sbFetch("sold",    { params: "?order=sold_date.desc" }),
+]);
+
+setZaiko(z.map(toZaiko));
+setNyuka(n.map(toNyuka));
+setKaitaku(k.map(toKaitaku));
+setSold(s.map(toSold));
       setZaiko(z.map(toZaiko));
       setNyuka(n.map(toNyuka));
       setKaitaku(k.map(toKaitaku));
@@ -571,7 +586,7 @@ export default function App() {
       </header>
 
       <div style={S.tabs}>
-        {[["zaiko","在庫"],["nyuka","入荷予定"],["kaitaku","新規開拓"]].map(([key,icon,label]) => (
+        {[["zaiko","在庫"],["nyuka","入荷予定"],["kaitaku","新規開拓"],["sold","販売済み"]].map(([key,icon,label]) => (
           <button key={key} style={S.tab(tab===key)} onClick={() => setTab(key)}>{icon} {label}</button>
         ))}
       </div>
@@ -587,7 +602,13 @@ export default function App() {
             </div>
             {zaiko.length === 0
               ? <div style={S.empty}><p>在庫データなし</p></div>
-              : <div style={S.cardGrid}>{zaiko.map(item => <ZaikoCard key={item.id} item={item} onDelete={deleteZaiko} onUpdate={updateZaiko} />)}</div>
+              : <div style={S.cardGrid}>{zaiko.map(item => <ZaikoCard
+  key={item.id}
+  item={item}
+  onDelete={deleteZaiko}
+  onUpdate={updateZaiko}
+  onSold={handleSold}
+/>)}</div>
             }
             {showZaikoForm && (
               <div style={S.formBox}>
@@ -660,6 +681,19 @@ export default function App() {
             )}
           </div>
         )}
+        {/* 販売済み */}
+{tab === "sold" && (
+  <div>
+    <div style={S.sectionHead}>
+      <div style={S.sectionTitle}>販売済み</div>
+    </div>
+
+    {sold.length === 0
+      ? <div style={S.empty}><div style={{fontSize:48,opacity:.4}}>✅</div><p>販売済みデータなし</p></div>
+      : <div style={S.cardGrid}>{sold.map(item => <SoldCard key={item.id} item={item} />)}</div>
+    }
+  </div>
+)}
       </div>
     </div>
   );
