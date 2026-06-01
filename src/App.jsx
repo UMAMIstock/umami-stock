@@ -155,7 +155,7 @@ function calcSoldSummary(items, mode) {
 const S = {
   body:        { background: "#f0f2f5", minHeight: "100vh", fontFamily: "'Noto Sans JP', sans-serif", color: "#1a1f2e" },
   header:      { position: "sticky", top: 0, zIndex: 100, background: "rgba(240,242,245,0.95)", backdropFilter: "blur(12px)", borderBottom: "1px solid #dde1e9", padding: "0 16px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 64 },
-  logo:        { fontFamily: "'Noto Sans JP', sans-serif", fontWeight: 800, fontSize: 20, color: "#5a9e2f" },
+  logo:        { fontFamily: "'Sora', sans-serif", fontWeight: 800, fontSize: 20, color: "#5a9e2f" },
   logoSub:     { fontWeight: 400, color: "#1a1f2e" },
   badge:       { fontSize: 11, background: "#5a9e2f", color: "#fff", padding: "2px 10px", borderRadius: 20, fontWeight: 700, letterSpacing: 1 },
   tabs: {
