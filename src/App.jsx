@@ -77,6 +77,13 @@ function parseQty(qtyStr) {
   };
 }
 
+function getQtyNumber(qtyStr) {
+  const match = String(qtyStr || "").trim().match(/(\d+(?:\.\d+)?)/);
+  if (!match) return 1;
+
+  return parseFloat(match[1]) || 1;
+}
+
 function subtractQty(currentQty, soldQty) {
   const current = parseQty(currentQty);
   const sold = parseQty(soldQty);
@@ -362,7 +369,7 @@ function ZaikoCard({ item, onDelete, onUpdate, onSold }) {
               <input style={S.editInput} value={name}    onChange={e => setName(e.target.value)}    placeholder="品目" />
               <input style={S.editInput} value={qty}     onChange={e => setQty(e.target.value)}     placeholder="数量" />
               <input style={S.editInput} value={buy}     onChange={e => setBuy(e.target.value)}     type="number" placeholder="仕入れ値" />
-              <input style={S.editInput} value={sell}    onChange={e => setSell(e.target.value)}    type="number" placeholder="売り値" />
+              <input style={S.editInput} value={sell}    onChange={e => setSell(e.target.value)}    type="number" placeholder="販売単価" />
               <input style={S.editInput} value={buyDate} onChange={e => setBuyDate(e.target.value)} type="date" />
               <div style={S.editBtns}>
                 <button style={S.editSave}   onClick={handleSave}>保存</button>
@@ -678,9 +685,15 @@ setSold(s.map(toSold));
   showSync("販売処理中...", "#7a8599", false);
 
   try {
-    const soldBuy = item.buy || 0;
-    const soldSell = sale.sell || item.sell || 0;
-    const profit = soldSell - soldBuy;
+    const soldQtyNum = getQtyNumber(sale.qty);
+
+    const buyUnitPrice = Number(item.buy || 0);
+    const sellUnitPrice = Number(sale.sell || item.sell || 0);
+
+    const sales = sellUnitPrice * soldQtyNum;
+    const cost = buyUnitPrice * soldQtyNum;
+    const profit = sales - cost;
+
     const remainingQty = subtractQty(item.qty, sale.qty);
 
     await sbFetch("sold", {
@@ -690,8 +703,8 @@ setSold(s.map(toSold));
         source_id: item.id,
         name: item.name,
         qty: sale.qty,
-        buy: soldBuy,
-        sell: soldSell,
+        buy: cost,
+        sell: sales,
         profit,
         sold_date: sale.soldDate || new Date().toISOString().slice(0, 10),
       },
@@ -861,8 +874,8 @@ setSold(s.map(toSold));
                   <div style={S.formGroup}><label style={S.label}>品目</label><input style={S.input} value={zName} onChange={e=>setZName(e.target.value)} placeholder="例：鯛、トマト…"/></div>
                   <div style={S.formGroup}><label style={S.label}>数量</label><input style={S.input} value={zQty} onChange={e=>setZQty(e.target.value)} placeholder="例：10kg、5箱"/></div>
                   <div style={S.formGroup}><label style={S.label}>仕入れ日</label><input type="date" style={S.input} value={zDate} onChange={e=>setZDate(e.target.value)}/></div>
-                  <div style={S.formGroup}><label style={S.label}>仕入れ値（円）</label><input type="number" style={S.input} value={zBuy} onChange={e=>setZBuy(e.target.value)} placeholder="0"/></div>
-                  <div style={S.formGroup}><label style={S.label}>売り値（円）</label><input type="number" style={S.input} value={zSell} onChange={e=>setZSell(e.target.value)} placeholder="0"/></div>
+                  <div style={S.formGroup}><label style={S.label}>仕入れ単価（円）</label><input type="number" style={S.input} value={zBuy} onChange={e=>setZBuy(e.target.value)} placeholder="0"/></div>
+                  <div style={S.formGroup}><label style={S.label}>販売単価（円）</label><input type="number" style={S.input} value={zSell} onChange={e=>setZSell(e.target.value)} placeholder="0"/></div>
                   <div style={{alignSelf:"flex-end"}}><button style={S.btnPrimary} onClick={addZaiko}>追加する</button></div>
                 </div>
               </div>
