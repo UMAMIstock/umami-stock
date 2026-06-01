@@ -842,7 +842,6 @@ setSold(s.map(toSold));
         <div style={S.logo}>UMAMI<span style={S.logoSub}> stock</span></div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ fontSize: 11, fontWeight: 600, color: syncColor }}>{syncMsg}</span>
-          <div style={S.badge}>尼崎市場</div>
         </div>
       </header>
 
