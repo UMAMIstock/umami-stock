@@ -955,9 +955,14 @@ setSold(s.map(toSold));
 
             return (
               <div>
-                <div style={S.sectionHead}>
-                  <div style={S.sectionTitle}>販売済み</div>
-                </div>
+                              <div style={S.sectionHead}>
+                <div style={S.sectionTitle}>販売済み</div>
+                <button
+                  style={{ ...S.btnPrimary, visibility: "hidden", pointerEvents: "none" }}
+                >
+                  ＋ 追加
+                </button>
+              </div>
 
                 <div style={S.summaryBox}>
                   <div style={S.summaryTabs}>
