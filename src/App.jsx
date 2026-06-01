@@ -352,8 +352,8 @@ function ZaikoCard({ item, onDelete, onUpdate, onSold }) {
       detailContent={
         <>
           {[
-            ["仕入れ値", item.buy  ? `¥${item.buy.toLocaleString()}`  : "—"],
-            ["売り値",   item.sell ? `¥${item.sell.toLocaleString()}` : "—"],
+            ["仕入れ単価", item.buy  ? `¥${item.buy.toLocaleString()}`  : "—"],
+            ["販売単価",   item.sell ? `¥${item.sell.toLocaleString()}` : "—"],
             ["粗利", (item.buy || item.sell)
               ? <span style={profit > 0 ? S.profitPos : profit < 0 ? S.profitNeg : {}}>
                   {profit >= 0 ? "+¥" : "¥"}{profit.toLocaleString()}
@@ -368,7 +368,7 @@ function ZaikoCard({ item, onDelete, onUpdate, onSold }) {
             <div style={S.editInline}>
               <input style={S.editInput} value={name}    onChange={e => setName(e.target.value)}    placeholder="品目" />
               <input style={S.editInput} value={qty}     onChange={e => setQty(e.target.value)}     placeholder="数量" />
-              <input style={S.editInput} value={buy}     onChange={e => setBuy(e.target.value)}     type="number" placeholder="仕入れ値" />
+              <input style={S.editInput} value={buy}     onChange={e => setBuy(e.target.value)}     type="number" placeholder="仕入れ単価" />
               <input style={S.editInput} value={sell}    onChange={e => setSell(e.target.value)}    type="number" placeholder="販売単価" />
               <input style={S.editInput} value={buyDate} onChange={e => setBuyDate(e.target.value)} type="date" />
               <div style={S.editBtns}>
@@ -392,7 +392,7 @@ function ZaikoCard({ item, onDelete, onUpdate, onSold }) {
                 value={soldSell}
                 onChange={e => setSoldSell(e.target.value)}
                 type="number"
-                placeholder="売り値"
+                placeholder="販売単価"
               />
               <input
                 style={S.editInput}
@@ -452,8 +452,17 @@ function NyukaCard({ item, onDelete, onUpdate, onNyukazumi }) {
         <>
           {[
             ["入荷日",   formatDate(item.date)],
-            ["受取場所", item.place === "市場" ? "🏪 市場" : item.place === "ヤマト" ? "📮 ヤマト" : item.place || "—"],
-            ["仕入れ値", item.buy ? `¥${item.buy.toLocaleString()}` : "—"],
+            [
+              "受取場所",
+              item.place === "市場"
+                ? "尼崎市場"
+                : item.place === "ヤマト"
+                  ? "ヤマト"
+                  : item.place === "佐川"
+                    ? "佐川"
+                    : item.place || "—"
+            ],
+            ["仕入れ単価", item.buy ? `¥${item.buy.toLocaleString()}` : "—"],
           ].map(([k, v], i, a) => (
             <div key={k} style={{ ...S.detailRow, borderBottom: i === a.length - 1 ? "none" : undefined }}>
               <span style={S.dk}>{k}</span><span style={S.dv}>{v}</span>
@@ -465,10 +474,11 @@ function NyukaCard({ item, onDelete, onUpdate, onNyukazumi }) {
               <input style={S.editInput} value={qty}   onChange={e => setQty(e.target.value)}   placeholder="数量" />
               <input style={S.editInput} value={date}  onChange={e => setDate(e.target.value)}  type="date" />
               <select style={{ ...S.editInput }} value={place} onChange={e => setPlace(e.target.value)}>
-                <option value="市場">🏪 市場</option>
-                <option value="ヤマト">📮箱 ヤマト</option>
+                <option value="市場">尼崎市場</option>
+                <option value="ヤマト">ヤマト</option>
+                <option value="佐川">佐川</option>
               </select>
-              <input style={S.editInput} value={buy} onChange={e => setBuy(e.target.value)} type="number" placeholder="仕入れ値" />
+              <input style={S.editInput} value={buy} onChange={e => setBuy(e.target.value)} type="number" placeholder="仕入れ単価" />
               <div style={S.editBtns}>
                 <button style={S.editSave}   onClick={handleSave}>保存</button>
                 <button style={S.editCancel} onClick={() => setEditing(false)}>キャンセル</button>
@@ -569,8 +579,8 @@ function SoldCard({ item, onDelete }) {
           {[
             ["商品名", item.name || "—"],
             ["数量", item.qty || "—"],
-            ["仕入れ値", item.buy ? `¥${item.buy.toLocaleString()}` : "—"],
-            ["売り値", item.sell ? `¥${item.sell.toLocaleString()}` : "—"],
+            ["仕入原価", item.buy ? `¥${item.buy.toLocaleString()}` : "—"],
+            ["売上", item.sell ? `¥${item.sell.toLocaleString()}` : "—"],
             ["粗利", <span style={item.profit > 0 ? S.profitPos : item.profit < 0 ? S.profitNeg : {}}>
               {item.profit >= 0 ? "+¥" : "¥"}{item.profit.toLocaleString()}
             </span>],
@@ -906,9 +916,10 @@ setSold(s.map(toSold));
                       <option value="">選択してください</option>
                       <option value="市場">市場</option>
                       <option value="ヤマト">ヤマト</option>
+                      <option value="佐川">佐川</option>
                     </select>
                   </div>
-                  <div style={S.formGroup}><label style={S.label}>仕入れ値（円）</label><input type="number" style={S.input} value={nBuy} onChange={e=>setNBuy(e.target.value)} placeholder="0"/></div>
+                  <div style={S.formGroup}><label style={S.label}>仕入れ単価（円）</label><input type="number" style={S.input} value={nBuy} onChange={e=>setNBuy(e.target.value)} placeholder="0"/></div>
                   <div style={{alignSelf:"flex-end"}}><button style={S.btnPrimary} onClick={addNyuka}>追加する</button></div>
                 </div>
               </div>
