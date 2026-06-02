@@ -275,7 +275,7 @@ const S = {
 
   logoImg: {
     display: "block",
-    width: 185,
+    width: 300,
     maxWidth: "72vw",
     height: "auto",
   },
