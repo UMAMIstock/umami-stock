@@ -296,14 +296,14 @@ const S = {
   tab: active => ({
     flex: "1 1 0",
     minWidth: 0,
-    height: 40,
+    height: 36,
     padding: "0 8px",
     borderRadius: 999,
     border: `1.5px solid ${T.green}`,
     background: active ? T.green : T.card,
     color: active ? "#fff" : T.green,
     fontSize: 15,
-    fontWeight: 600,
+    fontWeight: 400,
     cursor: "pointer",
     display: "flex",
     alignItems: "center",
@@ -333,8 +333,8 @@ const S = {
   },
 
   sectionTitle: {
-    fontSize: 31,
-    fontWeight: 800,
+    fontSize: 30,
+    fontWeight: 600,
     color: T.green,
     letterSpacing: "0.02em",
     lineHeight: 1.1,
@@ -462,8 +462,8 @@ const S = {
   },
 
   cardName: {
-    fontSize: 21,
-    fontWeight: 800,
+    fontSize: 18,
+    fontWeight: 600,
     color: T.green,
     lineHeight: 1.35,
     letterSpacing: "0.01em",
@@ -471,8 +471,8 @@ const S = {
   },
 
   cardQty: {
-    fontSize: 21,
-    fontWeight: 800,
+    fontSize: 18,
+    fontWeight: 600,
     color: T.qty,
     letterSpacing: "0.02em",
   },
@@ -485,14 +485,14 @@ const S = {
   },
 
   cardArrow: open => ({
-    width: 42,
-    height: 42,
+    width: 21,
+    height: 21,
     borderRadius: "50%",
     background: T.green,
     color: "#fff",
     display: "grid",
     placeItems: "center",
-    fontSize: 28,
+    fontSize: 15,
     fontWeight: 400,
     flexShrink: 0,
     transform: open ? "rotate(180deg)" : "none",
@@ -798,7 +798,7 @@ function ZaikoCard({ item, onDelete, onUpdate, onSold }) {
         <div style={{ display: "flex", alignItems: "center", gap: 18, overflow: "hidden" }}>
           <span style={S.cardQty}>{item.qty || "—"}</span>
           {ds && (
-            <span style={{ fontSize: 18, color: ds.color, fontWeight: 800, whiteSpace: "nowrap" }}>
+            <span style={{ fontSize: 15, color: ds.color, fontWeight: 600, whiteSpace: "nowrap" }}>
               {ds.label}
             </span>
           )}
@@ -914,7 +914,7 @@ function NyukaCard({ item, onDelete, onUpdate, onNyukazumi }) {
         <div style={{ display: "flex", alignItems: "center", gap: 18, overflow: "hidden" }}>
           <span style={S.cardQty}>{item.qty || "—"}</span>
           {dl && (
-            <span style={{ fontSize: 18, color: dl.color, fontWeight: 800, whiteSpace: "nowrap" }}>
+            <span style={{ fontSize: 15, color: dl.color, fontWeight: 600, whiteSpace: "nowrap" }}>
               {dl.label}
             </span>
           )}
