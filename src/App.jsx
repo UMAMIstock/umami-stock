@@ -854,6 +854,22 @@ setSold(s.map(toSold));
   };
 
   // ---- レンダリング ----
+const deleteSold = async (id) => {
+  if (!confirm("販売済みデータを削除しますか？")) return;
+
+  showSync("削除中...", "#7a8599", false);
+
+  try {
+    await sbFetch("sold", {
+      method: "DELETE",
+      params: `?id=eq.${id}`,
+    });
+
+    await loadAll();
+  } catch (e) {
+    showSync("⚠ 削除失敗: " + e.message, "#e05c2a", false);
+  }
+};
 const restoreSold = async (item) => {
   if (!confirm(`「${item.name}」を在庫に戻しますか？`)) return;
 
