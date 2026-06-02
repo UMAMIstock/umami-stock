@@ -275,7 +275,7 @@ const S = {
 
   logoImg: {
     display: "block",
-    width: 300,
+    width: 185,
     maxWidth: "72vw",
     height: "auto",
   },
@@ -1615,7 +1615,7 @@ export default function App() {
                   </button>
                 </div>
 
-                nyuka.length === 0 && !showNyukaForm ? (
+                {nyuka.length === 0 && !showNyukaForm ? (
                   <div style={S.empty}>
                     <p>入荷予定データなし</p>
                   </div>
