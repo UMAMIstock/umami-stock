@@ -3,6 +3,23 @@ import { useState, useEffect, useCallback } from "react";
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+// ---- テーマ ----
+const T = {
+  green: "#51682a",
+  bg: "#f0f0e9",
+  panel: "#e6e5dc",
+  card: "#fffef9",
+  qty: "#86956a",
+  ageFresh: "#7eae53",
+  ageMid: "#a09545",
+  ageOld: "#e56228",
+  textMain: "#51682a",
+  textSub: "#86956a",
+  textMuted: "#8f967c",
+  border: "rgba(81,104,42,0.35)",
+  softBorder: "rgba(81,104,42,0.16)",
+};
+
 // ---- Supabase REST API ----
 async function sbFetch(table, options = {}) {
   const { method = "GET", body, params = "" } = options;
@@ -11,7 +28,7 @@ async function sbFetch(table, options = {}) {
     Authorization: `Bearer ${SUPABASE_KEY}`,
     "Content-Type": "application/json",
   };
-  // POSTのみreturn=representationをつける（PATCH/DELETEはつけない）
+
   if (method === "POST") headers["Prefer"] = "return=representation";
 
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}${params}`, {
@@ -19,15 +36,38 @@ async function sbFetch(table, options = {}) {
     headers,
     body: body ? JSON.stringify(body) : undefined,
   });
+
   const text = await res.text();
   if (!res.ok) throw new Error(text);
   return text ? JSON.parse(text) : [];
 }
 
-// ---- DB行 → React state変換（buyDate統一）----
-const toZaiko   = r => ({ id: r.id, name: r.name, qty: r.qty || "", buy: r.buy || 0, sell: r.sell || 0, buyDate: r.buy_date || "" });
-const toNyuka   = r => ({ id: r.id, name: r.name, qty: r.qty || "", date: r.date || "", place: r.place || "", buy: r.buy || 0 });
-const toKaitaku = r => ({ id: r.id, title: r.title, memo: r.memo || "", url: r.url || "" });
+// ---- DB行 → React state変換 ----
+const toZaiko = r => ({
+  id: r.id,
+  name: r.name,
+  qty: r.qty || "",
+  buy: r.buy || 0,
+  sell: r.sell || 0,
+  buyDate: r.buy_date || "",
+});
+
+const toNyuka = r => ({
+  id: r.id,
+  name: r.name,
+  qty: r.qty || "",
+  date: r.date || "",
+  place: r.place || "",
+  buy: r.buy || 0,
+});
+
+const toKaitaku = r => ({
+  id: r.id,
+  title: r.title,
+  memo: r.memo || "",
+  url: r.url || "",
+});
+
 const toSold = r => ({
   id: r.id,
   sourceId: r.source_id,
@@ -42,29 +82,73 @@ const toSold = r => ({
 // ---- ユーティリティ ----
 function daysSince(dateStr) {
   if (!dateStr) return null;
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const diff = Math.round((today - new Date(dateStr)) / 86400000);
-  const color = diff === 0 ? "#5a9e2f" : diff <= 3 ? "#5a9e2f" : diff <= 7 ? "#7a8599" : "#e05c2a";
-  const label = diff === 0 ? "本日入荷" : diff === 1 ? "前日入荷" : `${diff}日前入荷`;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const base = new Date(dateStr);
+  base.setHours(0, 0, 0, 0);
+
+  const diff = Math.round((today - base) / 86400000);
+
+  let color = T.ageFresh;
+  if (diff >= 7) color = T.ageOld;
+  else if (diff >= 3) color = T.ageMid;
+
+  let label;
+  if (diff <= 0) label = "本日入荷";
+  else if (diff === 1) label = "前日入荷";
+  else if (diff === 2) label = "二日前";
+  else if (diff === 7) label = "一週間前";
+  else label = `${diff}日前`;
+
   return { label, color };
 }
 
-// ⑤ 色分け改善版
 function daysLeft(dateStr) {
   if (!dateStr) return null;
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const diff = Math.round((new Date(dateStr) - today) / 86400000);
-  let color, label;
-  if (diff < 0)        { color = "#e05c2a"; label = "期日超過"; }
-  else if (diff === 0) { color = "#5a9e2f"; label = "今日着"; }
-  else if (diff <= 3)  { color = "#7ec85a"; label = diff === 1 ? "明日着" : `${diff}日後着`; }
-  else                 { color = "#7a8599"; label = `${diff}日後着`; }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const base = new Date(dateStr);
+  base.setHours(0, 0, 0, 0);
+
+  const diff = Math.round((base - today) / 86400000);
+
+  let color = T.ageFresh;
+  let label;
+
+  if (diff < 0) {
+    color = T.ageOld;
+    label = "期日超過";
+  } else if (diff === 0) {
+    color = T.ageFresh;
+    label = "今日着";
+  } else if (diff === 1) {
+    color = T.ageFresh;
+    label = "明日着";
+  } else if (diff === 2) {
+    color = T.ageFresh;
+    label = "二日後着";
+  } else if (diff <= 6) {
+    color = T.ageMid;
+    label = `${diff}日後着`;
+  } else {
+    color = T.textMuted;
+    label = `${diff}日後着`;
+  }
+
   return { label, color };
 }
 
 function formatDate(dateStr) {
   if (!dateStr) return "—";
-  return new Date(dateStr).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric", weekday: "short" });
+  return new Date(dateStr).toLocaleDateString("ja-JP", {
+    month: "numeric",
+    day: "numeric",
+    weekday: "short",
+  });
 }
 
 function parseQty(qtyStr) {
@@ -103,8 +187,6 @@ function addQty(currentQty, restoreQty) {
   const restore = parseQty(restoreQty);
 
   if (!current || !restore) return currentQty || restoreQty;
-
-  // 単位が違う場合は無理に足さない
   if (current.unit !== restore.unit) return currentQty || restoreQty;
 
   const total = current.num + restore.num;
@@ -125,7 +207,7 @@ function getThisWeekRange() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const day = today.getDay(); // 日曜0、月曜1
+  const day = today.getDay();
   const diffToMonday = day === 0 ? -6 : 1 - day;
 
   const monday = new Date(today);
@@ -166,121 +248,465 @@ function calcSoldSummary(items, mode) {
 
 // ---- スタイル定数 ----
 const S = {
-  body:        { background: "#f0f2f5", minHeight: "100vh", fontFamily: "'Noto Sans JP', sans-serif", color: "#1a1f2e" },
+  body: {
+    background: T.bg,
+    minHeight: "100vh",
+    fontFamily: "'Noto Sans JP', system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+    color: T.textMain,
+    padding: "26px 16px 34px",
+    boxSizing: "border-box",
+  },
+
+  appShell: {
+    width: "100%",
+    maxWidth: 520,
+    margin: "0 auto",
+  },
+
   header: {
-    position: "sticky",
-    top: 0,
-    zIndex: 100,
-    background: "rgba(248,251,248,0.95)",
-    backdropFilter: "blur(12px)",
+    background: "transparent",
     borderBottom: "none",
-    padding: "0 16px",
+    padding: "0 4px",
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    height: 58
+    marginBottom: 20,
   },
-  logo:        { fontFamily: "'Sora', sans-serif", fontWeight: 800, fontSize: 20, color: "#5a9e2f" },
-  logoSub:     { fontWeight: 400, color: "#1a1f2e" },
-  badge:       { fontSize: 11, background: "#5a9e2f", color: "#fff", padding: "2px 10px", borderRadius: 20, fontWeight: 700, letterSpacing: 1 },
+
+  logoImg: {
+    display: "block",
+    width: 260,
+    maxWidth: "72vw",
+    height: "auto",
+  },
+
+  syncText: {
+    fontSize: 11,
+    fontWeight: 700,
+    whiteSpace: "nowrap",
+  },
+
   tabs: {
     display: "flex",
-    gap: 0,
-    padding: "8px 6px 0",
+    gap: 8,
+    padding: 0,
+    marginBottom: 18,
   },
-  tab: a => ({
+
+  tab: active => ({
     flex: "1 1 0",
     minWidth: 0,
-    padding: "10px 4px",
-    borderRadius: "10px 10px 0 0",
-    border: "none",
-    borderBottom: "none",
-    background: a ? "#f7f8fa" : "#fff",
-    color: a ? "#5a9e2f" : "#7a8599",
-    fontSize: 13,
-    fontWeight: a ? 700 : 500,
+    height: 48,
+    padding: "0 8px",
+    borderRadius: 999,
+    border: `1.5px solid ${T.green}`,
+    background: active ? T.green : T.card,
+    color: active ? "#fff" : T.green,
+    fontSize: 15,
+    fontWeight: 700,
     cursor: "pointer",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     whiteSpace: "nowrap",
-    fontFamily: "'Noto Sans JP', sans-serif"
+    letterSpacing: "0.03em",
+    fontFamily: "'Noto Sans JP', system-ui, sans-serif",
+    boxSizing: "border-box",
   }),
+
   content: {
-    background: "#f7f8fa",
-    borderLeft: "1px solid #dde1e9",
-    borderRight: "1px solid #dde1e9",
-    borderBottom: "1px solid #dde1e9",
-    borderTop: "none",
-    margin: "0 6px 32px",
-    borderRadius: "0 0 12px 12px",
-    padding: "20px 12px",
-    minHeight: 400
+    background: T.panel,
+    border: "none",
+    margin: 0,
+    borderRadius: 34,
+    padding: "28px 18px 26px",
+    minHeight: "72vh",
+    boxSizing: "border-box",
   },
-  sectionHead: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, paddingLeft: 4 },
-  sectionTitle:{ fontSize: 20, fontWeight: 700 },
-  btnPrimary:  { display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 18px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", border: "none", background: "#5a9e2f", color: "#fff", fontFamily: "'Noto Sans JP', sans-serif" },
-  btnEdit:     { width: "100%", marginTop: 10, padding: 7, borderRadius: 7, border: "1.5px solid #dde1e9", background: "rgba(0,0,0,0.04)", color: "#7a8599", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "'Noto Sans JP', sans-serif" },
-  btnDel:      { width: "100%", marginTop: 6, padding: 7, borderRadius: 7, border: "1.5px solid rgba(90,158,47,0.25)", background: "rgba(90,158,47,0.08)", color: "#4a8424", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "'Noto Sans JP', sans-serif" },
-  btnNyuka:    { width: "100%", marginTop: 6, padding: 7, borderRadius: 7, border: "1.5px solid rgba(58,142,246,0.3)", background: "rgba(58,142,246,0.08)", color: "#3a8ef6", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "'Noto Sans JP', sans-serif" },
-  btnUrl:      { display: "block", width: "100%", textAlign: "center", marginTop: 8, padding: 7, borderRadius: 7, border: "1.5px solid #dde1e9", background: "rgba(0,0,0,0.04)", color: "#7a8599", fontSize: 12, fontWeight: 700, textDecoration: "none", boxSizing: "border-box" },
-  cardGrid:    { display: "grid", gridTemplateColumns: "1fr", gap: 10 },
-  card:        { background: "#fff", border: "1.5px solid #dde1e9", borderRadius: 12, overflow: "hidden", width: "100%", boxSizing: "border-box" },
+
+  sectionHead: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 22,
+    padding: "0 12px",
+  },
+
+  sectionTitle: {
+    fontSize: 31,
+    fontWeight: 800,
+    color: T.green,
+    letterSpacing: "0.02em",
+    lineHeight: 1.1,
+  },
+
+  btnAddCircle: {
+    width: 46,
+    height: 46,
+    borderRadius: "50%",
+    border: "none",
+    background: T.green,
+    color: "#fff",
+    fontSize: 33,
+    lineHeight: 1,
+    fontWeight: 300,
+    cursor: "pointer",
+    display: "grid",
+    placeItems: "center",
+    padding: 0,
+    fontFamily: "system-ui, sans-serif",
+  },
+
+  btnPrimary: {
+    width: "100%",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    padding: "12px 18px",
+    borderRadius: 999,
+    fontSize: 14,
+    fontWeight: 800,
+    cursor: "pointer",
+    border: "none",
+    background: T.green,
+    color: "#fff",
+    fontFamily: "'Noto Sans JP', system-ui, sans-serif",
+  },
+
+  btnEdit: {
+    width: "100%",
+    marginTop: 12,
+    padding: "10px 12px",
+    borderRadius: 999,
+    border: `1.5px solid ${T.softBorder}`,
+    background: "rgba(255,255,255,0.55)",
+    color: T.green,
+    fontSize: 13,
+    fontWeight: 800,
+    cursor: "pointer",
+    fontFamily: "'Noto Sans JP', system-ui, sans-serif",
+  },
+
+  btnDel: {
+    width: "100%",
+    marginTop: 8,
+    padding: "10px 12px",
+    borderRadius: 999,
+    border: "1.5px solid rgba(229,98,40,0.28)",
+    background: "rgba(229,98,40,0.08)",
+    color: T.ageOld,
+    fontSize: 13,
+    fontWeight: 800,
+    cursor: "pointer",
+    fontFamily: "'Noto Sans JP', system-ui, sans-serif",
+  },
+
+  btnNyuka: {
+    width: "100%",
+    marginTop: 8,
+    padding: "10px 12px",
+    borderRadius: 999,
+    border: `1.5px solid ${T.softBorder}`,
+    background: "rgba(81,104,42,0.08)",
+    color: T.green,
+    fontSize: 13,
+    fontWeight: 800,
+    cursor: "pointer",
+    fontFamily: "'Noto Sans JP', system-ui, sans-serif",
+  },
+
+  btnUrl: {
+    display: "block",
+    width: "100%",
+    textAlign: "center",
+    marginTop: 10,
+    padding: "10px 12px",
+    borderRadius: 999,
+    border: `1.5px solid ${T.softBorder}`,
+    background: "rgba(81,104,42,0.06)",
+    color: T.green,
+    fontSize: 13,
+    fontWeight: 800,
+    textDecoration: "none",
+    boxSizing: "border-box",
+  },
+
+  cardGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr",
+    gap: 16,
+  },
+
+  card: {
+    background: T.card,
+    border: "none",
+    borderRadius: 28,
+    overflow: "hidden",
+    width: "100%",
+    boxSizing: "border-box",
+  },
+
+  cardOpen: {
+    boxShadow: "0 0 0 2px rgba(81,104,42,0.16)",
+  },
+
   cardMain: {
-  padding: "14px 16px",
-  cursor: "pointer",
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "stretch",
-  justifyContent: "flex-start",
-  gap: 8
-},
-  cardName:    { fontSize: 15, fontWeight: 800, color: "#5a9e2f", lineHeight: 1.35, wordBreak: "break-word" },
-  cardQty:     { fontSize: 15, fontWeight: 700, color: "#1a1f2e" },
-  cardDetail:  { borderTop: "1px solid #dde1e9", padding: "12px 14px 14px" },
-  detailRow:   { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", fontSize: 13, borderBottom: "1px solid rgba(200,210,220,0.4)" },
-  dk:          { color: "#7a8599", fontSize: 11, fontWeight: 700 },
-  dv:          { fontWeight: 600, color: "#1a1f2e" },
-  formBox:     { background: "#fff", border: "1px solid #dde1e9", borderRadius: 10, padding: 20, marginTop: 20 },
-  formGrid:    { display: "grid", gridTemplateColumns: "1fr", gap: 14 },
-  formGroup:   { display: "flex", flexDirection: "column", gap: 6 },
-  label:       { fontSize: 11, fontWeight: 700, color: "#7a8599", letterSpacing: 1, textTransform: "uppercase" },
-  input:       { background: "#fff", border: "1px solid #dde1e9", color: "#1a1f2e", padding: "9px 12px", borderRadius: 7, fontSize: 16, lineHeight: "22px", height: 42, fontFamily: "'Noto Sans JP', sans-serif", outline: "none", width: "100%", maxWidth: "100%", boxSizing: "border-box", appearance: "none" },
-  textarea:    { background: "#fff", border: "1px solid #dde1e9", color: "#1a1f2e", padding: "9px 12px", borderRadius: 7, fontSize: 16, lineHeight: "22px", fontFamily: "'Noto Sans JP', sans-serif", outline: "none", width: "100%", maxWidth: "100%", minHeight: 80, resize: "vertical", boxSizing: "border-box" },
-  select:      { background: "#fff", border: "1px solid #dde1e9", color: "#1a1f2e", padding: "9px 12px", borderRadius: 7, fontSize: 16, lineHeight: "22px", height: 42, fontFamily: "'Noto Sans JP', sans-serif", outline: "none", width: "100%", maxWidth: "100%", boxSizing: "border-box" },
-  editInline:  { marginTop: 10, display: "flex", flexDirection: "column", gap: 7 },
-  editInput:   { padding: "8px 10px", fontSize: 16, lineHeight: "22px", minHeight: 42, borderRadius: 6, border: "1px solid #dde1e9", background: "#f0f2f5", color: "#1a1f2e", fontFamily: "'Noto Sans JP', sans-serif", width: "100%", maxWidth: "100%", boxSizing: "border-box", appearance: "none" },
-  editBtns:    { display: "flex", gap: 6 },
-  editSave:    { flex: 1, padding: 6, borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", background: "#5a9e2f", color: "#fff", border: "none", fontFamily: "'Noto Sans JP', sans-serif" },
-  editCancel:  { flex: 1, padding: 6, borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", background: "#f0f2f5", color: "#7a8599", border: "1px solid #dde1e9", fontFamily: "'Noto Sans JP', sans-serif" },
-  empty:       { textAlign: "center", padding: "60px 20px", color: "#7a8599", display: "flex", flexDirection: "column", alignItems: "center", gap: 12 },
-  profitPos:   { color: "#5a9e2f", fontWeight: 700 },
-  profitNeg:   { color: "#e05c2a", fontWeight: 700 },
+    padding: "22px 22px",
+    cursor: "pointer",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "stretch",
+    justifyContent: "flex-start",
+    gap: 16,
+  },
+
+  cardName: {
+    fontSize: 21,
+    fontWeight: 800,
+    color: T.green,
+    lineHeight: 1.35,
+    letterSpacing: "0.01em",
+    wordBreak: "break-word",
+  },
+
+  cardQty: {
+    fontSize: 21,
+    fontWeight: 800,
+    color: T.qty,
+    letterSpacing: "0.02em",
+  },
+
+  cardSubText: {
+    fontSize: 18,
+    fontWeight: 800,
+    color: T.textSub,
+    lineHeight: 1.5,
+  },
+
+  cardArrow: open => ({
+    width: 42,
+    height: 42,
+    borderRadius: "50%",
+    background: T.green,
+    color: "#fff",
+    display: "grid",
+    placeItems: "center",
+    fontSize: 28,
+    fontWeight: 400,
+    flexShrink: 0,
+    transform: open ? "rotate(180deg)" : "none",
+    transition: "transform .2s ease",
+    lineHeight: 1,
+  }),
+
+  cardDetail: {
+    borderTop: `1px solid ${T.softBorder}`,
+    padding: "14px 18px 18px",
+  },
+
+  detailRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 14,
+    padding: "8px 0",
+    fontSize: 14,
+    borderBottom: "1px solid rgba(81,104,42,0.10)",
+  },
+
+  dk: {
+    color: T.textMuted,
+    fontSize: 12,
+    fontWeight: 800,
+    whiteSpace: "nowrap",
+  },
+
+  dv: {
+    fontWeight: 800,
+    color: T.green,
+    textAlign: "right",
+    wordBreak: "break-word",
+  },
+
+  formBox: {
+    background: T.card,
+    border: "none",
+    borderRadius: 28,
+    padding: 20,
+    marginTop: 18,
+    boxSizing: "border-box",
+  },
+
+  formGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr",
+    gap: 14,
+  },
+
+  formGroup: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 7,
+  },
+
+  label: {
+    fontSize: 12,
+    fontWeight: 800,
+    color: T.textMuted,
+    letterSpacing: "0.08em",
+  },
+
+  input: {
+    background: "#fff",
+    border: `1.5px solid ${T.softBorder}`,
+    color: T.green,
+    padding: "10px 14px",
+    borderRadius: 16,
+    fontSize: 16,
+    lineHeight: "22px",
+    height: 46,
+    fontFamily: "'Noto Sans JP', system-ui, sans-serif",
+    outline: "none",
+    width: "100%",
+    maxWidth: "100%",
+    boxSizing: "border-box",
+    appearance: "none",
+  },
+
+  textarea: {
+    background: "#fff",
+    border: `1.5px solid ${T.softBorder}`,
+    color: T.green,
+    padding: "10px 14px",
+    borderRadius: 16,
+    fontSize: 16,
+    lineHeight: "22px",
+    fontFamily: "'Noto Sans JP', system-ui, sans-serif",
+    outline: "none",
+    width: "100%",
+    maxWidth: "100%",
+    minHeight: 90,
+    resize: "vertical",
+    boxSizing: "border-box",
+  },
+
+  select: {
+    background: "#fff",
+    border: `1.5px solid ${T.softBorder}`,
+    color: T.green,
+    padding: "10px 14px",
+    borderRadius: 16,
+    fontSize: 16,
+    lineHeight: "22px",
+    height: 46,
+    fontFamily: "'Noto Sans JP', system-ui, sans-serif",
+    outline: "none",
+    width: "100%",
+    maxWidth: "100%",
+    boxSizing: "border-box",
+  },
+
+  editInline: {
+    marginTop: 12,
+    display: "flex",
+    flexDirection: "column",
+    gap: 9,
+  },
+
+  editInput: {
+    padding: "10px 13px",
+    fontSize: 16,
+    lineHeight: "22px",
+    minHeight: 44,
+    borderRadius: 15,
+    border: `1.5px solid ${T.softBorder}`,
+    background: "#fff",
+    color: T.green,
+    fontFamily: "'Noto Sans JP', system-ui, sans-serif",
+    width: "100%",
+    maxWidth: "100%",
+    boxSizing: "border-box",
+    appearance: "none",
+  },
+
+  editBtns: {
+    display: "flex",
+    gap: 8,
+  },
+
+  editSave: {
+    flex: 1,
+    padding: "10px 8px",
+    borderRadius: 999,
+    fontSize: 13,
+    fontWeight: 800,
+    cursor: "pointer",
+    background: T.green,
+    color: "#fff",
+    border: "none",
+    fontFamily: "'Noto Sans JP', system-ui, sans-serif",
+  },
+
+  editCancel: {
+    flex: 1,
+    padding: "10px 8px",
+    borderRadius: 999,
+    fontSize: 13,
+    fontWeight: 800,
+    cursor: "pointer",
+    background: "rgba(255,255,255,0.65)",
+    color: T.textMuted,
+    border: `1.5px solid ${T.softBorder}`,
+    fontFamily: "'Noto Sans JP', system-ui, sans-serif",
+  },
+
+  empty: {
+    textAlign: "center",
+    padding: "58px 20px",
+    color: T.textMuted,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 12,
+    fontWeight: 700,
+  },
+
+  profitPos: {
+    color: T.ageFresh,
+    fontWeight: 800,
+  },
+
+  profitNeg: {
+    color: T.ageOld,
+    fontWeight: 800,
+  },
+
   summaryBox: {
-  background: "#fff",
-  border: "1.5px solid #dde1e9",
-  borderRadius: 12,
-  padding: 14,
-  marginBottom: 14,
+    background: T.card,
+    border: "none",
+    borderRadius: 28,
+    padding: 18,
+    marginBottom: 16,
   },
 
   summaryTabs: {
     display: "flex",
-    gap: 6,
-    marginBottom: 12,
+    gap: 8,
+    marginBottom: 14,
   },
 
   summaryTab: active => ({
     flex: 1,
-    padding: "8px 10px",
-    borderRadius: 8,
-    border: "1px solid #dde1e9",
-    background: active ? "#5a9e2f" : "#fff",
-    color: active ? "#fff" : "#7a8599",
-    fontSize: 13,
-    fontWeight: 700,
+    padding: "10px 12px",
+    borderRadius: 999,
+    border: `1.5px solid ${T.green}`,
+    background: active ? T.green : T.card,
+    color: active ? "#fff" : T.green,
+    fontSize: 14,
+    fontWeight: 800,
     cursor: "pointer",
-    fontFamily: "'Noto Sans JP', sans-serif",
+    fontFamily: "'Noto Sans JP', system-ui, sans-serif",
   }),
 
   summaryGrid: {
@@ -290,44 +716,42 @@ const S = {
   },
 
   summaryItem: {
-    background: "#f7f8fa",
-    borderRadius: 10,
-    padding: 12,
+    background: T.bg,
+    borderRadius: 22,
+    padding: 14,
   },
 
   summaryLabel: {
-    fontSize: 11,
-    fontWeight: 700,
-    color: "#7a8599",
-    marginBottom: 4,
+    fontSize: 12,
+    fontWeight: 800,
+    color: T.textMuted,
+    marginBottom: 5,
   },
 
   summaryValue: {
-    fontSize: 18,
-    fontWeight: 800,
-    color: "#1a1f2e",
+    fontSize: 20,
+    fontWeight: 900,
+    color: T.green,
   },
-  };
+};
 
 // ---- 汎用カードコンポーネント ----
 function StockCard({ mainContent, subContent, detailContent }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div style={{ ...S.card, borderColor: open ? "#5a9e2f" : "#dde1e9" }}>
+    <div style={{ ...S.card, ...(open ? S.cardOpen : {}) }}>
       <div style={S.cardMain} onClick={() => setOpen(o => !o)}>
         <div style={{ width: "100%" }}>
           {mainContent}
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, width: "100%" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, width: "100%" }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             {subContent}
           </div>
 
-          <span style={{ fontSize: 11, color: "#7a8599", whiteSpace: "nowrap", flexShrink: 0 }}>
-            詳細 <span style={{ display: "inline-block", transition: "transform .2s", transform: open ? "rotate(180deg)" : "none" }}>▼</span>
-          </span>
+          <span style={S.cardArrow(open)}>↓</span>
         </div>
       </div>
 
@@ -336,13 +760,13 @@ function StockCard({ mainContent, subContent, detailContent }) {
   );
 }
 
-// ---- 在庫カード（③ 仕入日編集対応）----
+// ---- 在庫カード ----
 function ZaikoCard({ item, onDelete, onUpdate, onSold }) {
   const [editing, setEditing] = useState(false);
-  const [name,    setName]    = useState(item.name);
-  const [qty,     setQty]     = useState(item.qty);
-  const [buy,     setBuy]     = useState(item.buy);
-  const [sell,    setSell]    = useState(item.sell);
+  const [name, setName] = useState(item.name);
+  const [qty, setQty] = useState(item.qty);
+  const [buy, setBuy] = useState(item.buy);
+  const [sell, setSell] = useState(item.sell);
   const [buyDate, setBuyDate] = useState(item.buyDate);
   const [selling, setSelling] = useState(false);
   const [soldQty, setSoldQty] = useState(item.qty);
@@ -353,12 +777,11 @@ function ZaikoCard({ item, onDelete, onUpdate, onSold }) {
   const ds = daysSince(item.buyDate);
 
   const handleSave = async () => {
-    // React側はbuyDate、Supabaseへはbuy_dateで送る
     await onUpdate(item.id, {
       name,
       qty,
-      buy:      parseFloat(buy)  || 0,
-      sell:     parseFloat(sell) || 0,
+      buy: parseFloat(buy) || 0,
+      sell: parseFloat(sell) || 0,
       buy_date: buyDate,
     });
     setEditing(false);
@@ -372,41 +795,51 @@ function ZaikoCard({ item, onDelete, onUpdate, onSold }) {
         </div>
       }
       subContent={
-        <div style={{ display: "flex", alignItems: "center", gap: 10, overflow: "hidden" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 18, overflow: "hidden" }}>
           <span style={S.cardQty}>{item.qty || "—"}</span>
-          {ds && <span style={{ fontSize: 11, color: ds.color, fontWeight: 600, whiteSpace: "nowrap" }}>{ds.label}</span>}
+          {ds && (
+            <span style={{ fontSize: 18, color: ds.color, fontWeight: 800, whiteSpace: "nowrap" }}>
+              {ds.label}
+            </span>
+          )}
         </div>
       }
       detailContent={
         <>
           {[
-            ["仕入れ単価", item.buy  ? `¥${item.buy.toLocaleString()}`  : "—"],
-            ["販売単価",   item.sell ? `¥${item.sell.toLocaleString()}` : "—"],
-            ["粗利", (item.buy || item.sell)
-              ? <span style={profit > 0 ? S.profitPos : profit < 0 ? S.profitNeg : {}}>
-                  {profit >= 0 ? "+¥" : "¥"}{profit.toLocaleString()}
+            ["仕入れ単価", item.buy ? `¥${Number(item.buy).toLocaleString()}` : "—"],
+            ["販売単価", item.sell ? `¥${Number(item.sell).toLocaleString()}` : "—"],
+            [
+              "粗利",
+              item.buy || item.sell ? (
+                <span style={profit > 0 ? S.profitPos : profit < 0 ? S.profitNeg : {}}>
+                  {profit >= 0 ? "+¥" : "¥"}{Number(profit).toLocaleString()}
                 </span>
-              : "—"],
+              ) : "—",
+            ],
           ].map(([k, v], i, a) => (
             <div key={k} style={{ ...S.detailRow, borderBottom: i === a.length - 1 ? "none" : undefined }}>
-              <span style={S.dk}>{k}</span><span style={S.dv}>{v}</span>
+              <span style={S.dk}>{k}</span>
+              <span style={S.dv}>{v}</span>
             </div>
           ))}
+
           {editing ? (
             <div style={S.editInline}>
-              <input style={S.editInput} value={name}    onChange={e => setName(e.target.value)}    placeholder="品目" />
-              <input style={S.editInput} value={qty}     onChange={e => setQty(e.target.value)}     placeholder="数量" />
-              <input style={S.editInput} value={buy}     onChange={e => setBuy(e.target.value)}     type="number" placeholder="仕入れ単価" />
-              <input style={S.editInput} value={sell}    onChange={e => setSell(e.target.value)}    type="number" placeholder="販売単価" />
+              <input style={S.editInput} value={name} onChange={e => setName(e.target.value)} placeholder="品目" />
+              <input style={S.editInput} value={qty} onChange={e => setQty(e.target.value)} placeholder="数量" />
+              <input style={S.editInput} value={buy} onChange={e => setBuy(e.target.value)} type="number" placeholder="仕入れ単価" />
+              <input style={S.editInput} value={sell} onChange={e => setSell(e.target.value)} type="number" placeholder="販売単価" />
               <input style={S.editInput} value={buyDate} onChange={e => setBuyDate(e.target.value)} type="date" />
               <div style={S.editBtns}>
-                <button style={S.editSave}   onClick={handleSave}>保存</button>
+                <button style={S.editSave} onClick={handleSave}>保存</button>
                 <button style={S.editCancel} onClick={() => setEditing(false)}>キャンセル</button>
               </div>
             </div>
           ) : (
             <button style={S.btnEdit} onClick={() => setEditing(true)}>編集</button>
           )}
+
           {selling ? (
             <div style={S.editInline}>
               <input
@@ -441,6 +874,7 @@ function ZaikoCard({ item, onDelete, onUpdate, onSold }) {
           ) : (
             <button style={S.btnNyuka} onClick={() => setSelling(true)}>販売済み</button>
           )}
+
           <button style={S.btnDel} onClick={() => onDelete(item.id)}>削除</button>
         </>
       }
@@ -448,38 +882,48 @@ function ZaikoCard({ item, onDelete, onUpdate, onSold }) {
   );
 }
 
-// ---- 入荷予定カード（④ 入荷済みボタン付き）----
+// ---- 入荷予定カード ----
 function NyukaCard({ item, onDelete, onUpdate, onNyukazumi }) {
   const [editing, setEditing] = useState(false);
-  const [name,  setName]  = useState(item.name);
-  const [qty,   setQty]   = useState(item.qty);
-  const [date,  setDate]  = useState(item.date);
+  const [name, setName] = useState(item.name);
+  const [qty, setQty] = useState(item.qty);
+  const [date, setDate] = useState(item.date);
   const [place, setPlace] = useState(item.place);
-  const [buy,   setBuy]   = useState(item.buy);
+  const [buy, setBuy] = useState(item.buy);
   const dl = daysLeft(item.date);
 
   const handleSave = async () => {
-    await onUpdate(item.id, { name, qty, date, place, buy: parseFloat(buy) || 0 });
+    await onUpdate(item.id, {
+      name,
+      qty,
+      date,
+      place,
+      buy: parseFloat(buy) || 0,
+    });
     setEditing(false);
   };
 
   return (
     <StockCard
       mainContent={
-  <div style={{ ...S.cardName, textAlign: "left", width: "100%" }}>
-    {item.name}
-  </div>
-}
+        <div style={{ ...S.cardName, textAlign: "left", width: "100%" }}>
+          {item.name}
+        </div>
+      }
       subContent={
-        <div style={{ display: "flex", alignItems: "center", gap: 10, overflow: "hidden" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 18, overflow: "hidden" }}>
           <span style={S.cardQty}>{item.qty || "—"}</span>
-          {dl && <span style={{ fontSize: 11, color: dl.color, fontWeight: 600, whiteSpace: "nowrap" }}>{dl.label}</span>}
+          {dl && (
+            <span style={{ fontSize: 18, color: dl.color, fontWeight: 800, whiteSpace: "nowrap" }}>
+              {dl.label}
+            </span>
+          )}
         </div>
       }
       detailContent={
         <>
           {[
-            ["入荷日",   formatDate(item.date)],
+            ["入荷日", formatDate(item.date)],
             [
               "受取場所",
               item.place === "市場"
@@ -488,35 +932,38 @@ function NyukaCard({ item, onDelete, onUpdate, onNyukazumi }) {
                   ? "ヤマト"
                   : item.place === "佐川"
                     ? "佐川"
-                    : item.place || "—"
+                    : item.place || "—",
             ],
-            ["仕入れ単価", item.buy ? `¥${item.buy.toLocaleString()}` : "—"],
+            ["仕入れ単価", item.buy ? `¥${Number(item.buy).toLocaleString()}` : "—"],
           ].map(([k, v], i, a) => (
             <div key={k} style={{ ...S.detailRow, borderBottom: i === a.length - 1 ? "none" : undefined }}>
-              <span style={S.dk}>{k}</span><span style={S.dv}>{v}</span>
+              <span style={S.dk}>{k}</span>
+              <span style={S.dv}>{v}</span>
             </div>
           ))}
+
           {editing ? (
             <div style={S.editInline}>
-              <input style={S.editInput} value={name}  onChange={e => setName(e.target.value)}  placeholder="品目" />
-              <input style={S.editInput} value={qty}   onChange={e => setQty(e.target.value)}   placeholder="数量" />
-              <input style={S.editInput} value={date}  onChange={e => setDate(e.target.value)}  type="date" />
-              <select style={{ ...S.editInput }} value={place} onChange={e => setPlace(e.target.value)}>
+              <input style={S.editInput} value={name} onChange={e => setName(e.target.value)} placeholder="品目" />
+              <input style={S.editInput} value={qty} onChange={e => setQty(e.target.value)} placeholder="数量" />
+              <input style={S.editInput} value={date} onChange={e => setDate(e.target.value)} type="date" />
+              <select style={S.editInput} value={place} onChange={e => setPlace(e.target.value)}>
                 <option value="市場">尼崎市場</option>
                 <option value="ヤマト">ヤマト</option>
                 <option value="佐川">佐川</option>
               </select>
               <input style={S.editInput} value={buy} onChange={e => setBuy(e.target.value)} type="number" placeholder="仕入れ単価" />
               <div style={S.editBtns}>
-                <button style={S.editSave}   onClick={handleSave}>保存</button>
+                <button style={S.editSave} onClick={handleSave}>保存</button>
                 <button style={S.editCancel} onClick={() => setEditing(false)}>キャンセル</button>
               </div>
             </div>
           ) : (
             <button style={S.btnEdit} onClick={() => setEditing(true)}>編集</button>
           )}
+
           <button style={S.btnNyuka} onClick={() => onNyukazumi(item)}>入荷済み</button>
-          <button style={S.btnDel}   onClick={() => onDelete(item.id)}>削除</button>
+          <button style={S.btnDel} onClick={() => onDelete(item.id)}>削除</button>
         </>
       }
     />
@@ -527,8 +974,8 @@ function NyukaCard({ item, onDelete, onUpdate, onNyukazumi }) {
 function KaitakuCard({ item, onDelete, onUpdate }) {
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(item.title);
-  const [memo,  setMemo]  = useState(item.memo);
-  const [url,   setUrl]   = useState(item.url);
+  const [memo, setMemo] = useState(item.memo);
+  const [url, setUrl] = useState(item.url);
 
   const handleSave = async () => {
     await onUpdate(item.id, { title, memo, url });
@@ -538,16 +985,16 @@ function KaitakuCard({ item, onDelete, onUpdate }) {
   return (
     <StockCard
       mainContent={
-  <div style={{ ...S.cardName, textAlign: "left", width: "100%" }}>
-    {item.title}
-  </div>
-}
+        <div style={{ ...S.cardName, textAlign: "left", width: "100%" }}>
+          {item.title}
+        </div>
+      }
       subContent={
         <div
           style={{
-            fontSize: 12,
-            color: "#7a8599",
-            fontWeight: 600,
+            fontSize: 16,
+            color: T.textSub,
+            fontWeight: 800,
             lineHeight: 1.5,
             textAlign: "left",
             overflow: "hidden",
@@ -561,24 +1008,31 @@ function KaitakuCard({ item, onDelete, onUpdate }) {
       detailContent={
         <>
           {item.memo && (
-            <div style={{ fontSize: 13, color: "#7a8599", lineHeight: 1.6, whiteSpace: "pre-wrap", paddingBottom: 4 }}>{item.memo}</div>
+            <div style={{ fontSize: 14, color: T.textSub, lineHeight: 1.7, whiteSpace: "pre-wrap", paddingBottom: 6, fontWeight: 700 }}>
+              {item.memo}
+            </div>
           )}
+
           {item.url && (
-            <a href={item.url} target="_blank" rel="noreferrer" style={S.btnUrl}>サイトを開く</a>
+            <a href={item.url} target="_blank" rel="noreferrer" style={S.btnUrl}>
+              サイトを開く
+            </a>
           )}
+
           {editing ? (
             <div style={S.editInline}>
-              <input    style={S.editInput} value={title} onChange={e => setTitle(e.target.value)} placeholder="仕入先・品目" />
-              <input    style={S.editInput} type="url" value={url} onChange={e => setUrl(e.target.value)} placeholder="https://..." />
-              <textarea style={{ ...S.editInput, minHeight: 60, resize: "vertical" }} value={memo} onChange={e => setMemo(e.target.value)} placeholder="メモ" />
+              <input style={S.editInput} value={title} onChange={e => setTitle(e.target.value)} placeholder="仕入先・品目" />
+              <input style={S.editInput} type="url" value={url} onChange={e => setUrl(e.target.value)} placeholder="https://..." />
+              <textarea style={{ ...S.editInput, minHeight: 70, resize: "vertical" }} value={memo} onChange={e => setMemo(e.target.value)} placeholder="メモ" />
               <div style={S.editBtns}>
-                <button style={S.editSave}   onClick={handleSave}>保存</button>
+                <button style={S.editSave} onClick={handleSave}>保存</button>
                 <button style={S.editCancel} onClick={() => setEditing(false)}>キャンセル</button>
               </div>
             </div>
           ) : (
-            <button style={{ ...S.btnEdit, marginTop: item.url ? 8 : 10 }} onClick={() => setEditing(true)}>編集</button>
+            <button style={{ ...S.btnEdit, marginTop: item.url ? 10 : 12 }} onClick={() => setEditing(true)}>編集</button>
           )}
+
           <button style={S.btnDel} onClick={() => onDelete(item.id)}>削除</button>
         </>
       }
@@ -586,6 +1040,7 @@ function KaitakuCard({ item, onDelete, onUpdate }) {
   );
 }
 
+// ---- 販売済みカード ----
 function SoldCard({ item, onDelete, onRestore }) {
   return (
     <StockCard
@@ -595,9 +1050,9 @@ function SoldCard({ item, onDelete, onRestore }) {
         </div>
       }
       subContent={
-        <div style={{ display: "flex", alignItems: "center", gap: 10, overflow: "hidden" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 18, overflow: "hidden" }}>
           <span style={S.cardQty}>{item.qty || "—"}</span>
-          <span style={{ fontSize: 11, color: "#7a8599", fontWeight: 600, whiteSpace: "nowrap" }}>
+          <span style={{ fontSize: 18, color: T.textSub, fontWeight: 800, whiteSpace: "nowrap" }}>
             {formatDate(item.soldDate)}
           </span>
         </div>
@@ -607,17 +1062,22 @@ function SoldCard({ item, onDelete, onRestore }) {
           {[
             ["商品名", item.name || "—"],
             ["数量", item.qty || "—"],
-            ["仕入原価", item.buy ? `¥${item.buy.toLocaleString()}` : "—"],
-            ["売上", item.sell ? `¥${item.sell.toLocaleString()}` : "—"],
-            ["粗利", <span style={item.profit > 0 ? S.profitPos : item.profit < 0 ? S.profitNeg : {}}>
-              {item.profit >= 0 ? "+¥" : "¥"}{item.profit.toLocaleString()}
-            </span>],
+            ["仕入原価", item.buy ? `¥${Number(item.buy).toLocaleString()}` : "—"],
+            ["売上", item.sell ? `¥${Number(item.sell).toLocaleString()}` : "—"],
+            [
+              "粗利",
+              <span style={item.profit > 0 ? S.profitPos : item.profit < 0 ? S.profitNeg : {}}>
+                {item.profit >= 0 ? "+¥" : "¥"}{Number(item.profit).toLocaleString()}
+              </span>,
+            ],
             ["販売日", formatDate(item.soldDate)],
           ].map(([k, v], i, a) => (
             <div key={k} style={{ ...S.detailRow, borderBottom: i === a.length - 1 ? "none" : undefined }}>
-              <span style={S.dk}>{k}</span><span style={S.dv}>{v}</span>
+              <span style={S.dk}>{k}</span>
+              <span style={S.dv}>{v}</span>
             </div>
           ))}
+
           <button style={S.btnNyuka} onClick={() => onRestore(item)}>
             在庫に戻す
           </button>
@@ -632,57 +1092,74 @@ function SoldCard({ item, onDelete, onRestore }) {
 
 // ---- メインアプリ ----
 export default function App() {
-  const [tab,     setTab]     = useState("zaiko");
-  const [zaiko,   setZaiko]   = useState([]);
-  const [nyuka,   setNyuka]   = useState([]);
+  const [tab, setTab] = useState("zaiko");
+  const [zaiko, setZaiko] = useState([]);
+  const [nyuka, setNyuka] = useState([]);
   const [kaitaku, setKaitaku] = useState([]);
   const [sold, setSold] = useState([]);
-const [soldSummaryMode, setSoldSummaryMode] = useState("month");
-  const [syncMsg,   setSyncMsg]   = useState("読み込み中...");
-  const [syncColor, setSyncColor] = useState("#7a8599");
-  const [showZaikoForm,   setShowZaikoForm]   = useState(false);
-  const [showNyukaForm,   setShowNyukaForm]   = useState(false);
+  const [soldSummaryMode, setSoldSummaryMode] = useState("month");
+
+  const [syncMsg, setSyncMsg] = useState("読み込み中...");
+  const [syncColor, setSyncColor] = useState(T.textMuted);
+
+  const [showZaikoForm, setShowZaikoForm] = useState(false);
+  const [showNyukaForm, setShowNyukaForm] = useState(false);
   const [showKaitakuForm, setShowKaitakuForm] = useState(false);
 
-  // フォーム state
-  const [zName, setZName] = useState(""); const [zQty,  setZQty]  = useState("");
-  const [zBuy,  setZBuy]  = useState(""); const [zSell, setZSell] = useState(""); const [zDate, setZDate] = useState("");
-  const [nName, setNName] = useState(""); const [nQty,   setNQty]   = useState("");
-  const [nDate, setNDate] = useState(""); const [nPlace, setNPlace] = useState(""); const [nBuy, setNBuy] = useState("");
-  const [kTitle, setKTitle] = useState(""); const [kMemo, setKMemo] = useState(""); const [kUrl, setKUrl] = useState("");
+  const [zName, setZName] = useState("");
+  const [zQty, setZQty] = useState("");
+  const [zBuy, setZBuy] = useState("");
+  const [zSell, setZSell] = useState("");
+  const [zDate, setZDate] = useState("");
+
+  const [nName, setNName] = useState("");
+  const [nQty, setNQty] = useState("");
+  const [nDate, setNDate] = useState("");
+  const [nPlace, setNPlace] = useState("");
+  const [nBuy, setNBuy] = useState("");
+
+  const [kTitle, setKTitle] = useState("");
+  const [kMemo, setKMemo] = useState("");
+  const [kUrl, setKUrl] = useState("");
 
   const showSync = useCallback((msg, color, auto = true) => {
-    setSyncMsg(msg); setSyncColor(color);
+    setSyncMsg(msg);
+    setSyncColor(color);
     if (auto) setTimeout(() => setSyncMsg(""), 2500);
   }, []);
 
-  // ② 初回のみloadAll（setIntervalなし）
   const loadAll = useCallback(async () => {
-    showSync("読み込み中...", "#7a8599", false);
+    showSync("読み込み中...", T.textMuted, false);
+
     try {
       const [z, n, k, s] = await Promise.all([
-  sbFetch("zaiko",   { params: "?order=id.asc" }),
-  sbFetch("nyuka",   { params: "?order=date.asc" }),
-  sbFetch("kaitaku", { params: "?order=id.asc" }),
-  sbFetch("sold",    { params: "?order=sold_date.desc" }),
-]);
+        sbFetch("zaiko", { params: "?order=id.asc" }),
+        sbFetch("nyuka", { params: "?order=date.asc" }),
+        sbFetch("kaitaku", { params: "?order=id.asc" }),
+        sbFetch("sold", { params: "?order=sold_date.desc" }),
+      ]);
 
-setZaiko(z.map(toZaiko));
-setNyuka(n.map(toNyuka));
-setKaitaku(k.map(toKaitaku));
-setSold(s.map(toSold));
-      showSync("✓ 同期済み", "#5a9e2f");
+      setZaiko(z.map(toZaiko));
+      setNyuka(n.map(toNyuka));
+      setKaitaku(k.map(toKaitaku));
+      setSold(s.map(toSold));
+
+      showSync("✓ 同期済み", T.ageFresh);
     } catch (e) {
-      showSync("⚠ 読み込み失敗: " + e.message, "#e05c2a", false);
+      showSync("⚠ 読み込み失敗: " + e.message, T.ageOld, false);
     }
   }, [showSync]);
 
-  useEffect(() => { loadAll(); }, [loadAll]);
+  useEffect(() => {
+    loadAll();
+  }, [loadAll]);
 
   // ---- 在庫CRUD ----
   const addZaiko = async () => {
     if (!zName.trim()) return alert("品目を入力してください");
-    showSync("保存中...", "#7a8599", false);
+
+    showSync("保存中...", T.textMuted, false);
+
     try {
       await sbFetch("zaiko", {
         method: "POST",
@@ -695,115 +1172,164 @@ setSold(s.map(toSold));
           buy_date: zDate || new Date().toISOString().slice(0, 10),
         },
       });
-      setZName(""); setZQty(""); setZBuy(""); setZSell(""); setZDate("");
+
+      setZName("");
+      setZQty("");
+      setZBuy("");
+      setZSell("");
+      setZDate("");
       setShowZaikoForm(false);
       await loadAll();
-    } catch (e) { showSync("⚠ 保存失敗: " + e.message, "#e05c2a", false); }
+    } catch (e) {
+      showSync("⚠ 保存失敗: " + e.message, T.ageOld, false);
+    }
   };
 
-  const deleteZaiko = async (id) => {
+  const deleteZaiko = async id => {
     if (!confirm("削除しますか？")) return;
-    showSync("削除中...", "#7a8599", false);
+
+    showSync("削除中...", T.textMuted, false);
+
     try {
       await sbFetch("zaiko", { method: "DELETE", params: `?id=eq.${id}` });
       await loadAll();
-    } catch (e) { showSync("⚠ 削除失敗", "#e05c2a", false); }
+    } catch (e) {
+      showSync("⚠ 削除失敗", T.ageOld, false);
+    }
   };
 
   const updateZaiko = async (id, data) => {
-    showSync("保存中...", "#7a8599", false);
+    showSync("保存中...", T.textMuted, false);
+
     try {
-      await sbFetch("zaiko", { method: "PATCH", params: `?id=eq.${id}`, body: data });
+      await sbFetch("zaiko", {
+        method: "PATCH",
+        params: `?id=eq.${id}`,
+        body: data,
+      });
       await loadAll();
-    } catch (e) { showSync("⚠ 保存失敗: " + e.message, "#e05c2a", false); }
+    } catch (e) {
+      showSync("⚠ 保存失敗: " + e.message, T.ageOld, false);
+    }
   };
 
   const handleSold = async (item, sale) => {
-  if (!sale.qty.trim()) return alert("販売数量を入力してください");
-  if (!confirm(`「${item.name}」を販売済みにしますか？`)) return;
+    if (!sale.qty.trim()) return alert("販売数量を入力してください");
+    if (!confirm(`「${item.name}」を販売済みにしますか？`)) return;
 
-  showSync("販売処理中...", "#7a8599", false);
+    showSync("販売処理中...", T.textMuted, false);
 
-  try {
-    const soldQtyNum = getQtyNumber(sale.qty);
+    try {
+      const soldQtyNum = getQtyNumber(sale.qty);
 
-    const buyUnitPrice = Number(item.buy || 0);
-    const sellUnitPrice = Number(sale.sell || item.sell || 0);
+      const buyUnitPrice = Number(item.buy || 0);
+      const sellUnitPrice = Number(sale.sell || item.sell || 0);
 
-    const sales = sellUnitPrice * soldQtyNum;
-    const cost = buyUnitPrice * soldQtyNum;
-    const profit = sales - cost;
+      const sales = sellUnitPrice * soldQtyNum;
+      const cost = buyUnitPrice * soldQtyNum;
+      const profit = sales - cost;
 
-    const remainingQty = subtractQty(item.qty, sale.qty);
+      const remainingQty = subtractQty(item.qty, sale.qty);
 
-    await sbFetch("sold", {
-      method: "POST",
-      body: {
-        id: Date.now(),
-        source_id: item.id,
-        name: item.name,
-        qty: sale.qty,
-        buy: cost,
-        sell: sales,
-        profit,
-        sold_date: sale.soldDate || new Date().toISOString().slice(0, 10),
-      },
-    });
-
-    if (!remainingQty) {
-      await sbFetch("zaiko", { method: "DELETE", params: `?id=eq.${item.id}` });
-    } else {
-      await sbFetch("zaiko", {
-        method: "PATCH",
-        params: `?id=eq.${item.id}`,
-        body: { qty: remainingQty },
+      await sbFetch("sold", {
+        method: "POST",
+        body: {
+          id: Date.now(),
+          source_id: item.id,
+          name: item.name,
+          qty: sale.qty,
+          buy: cost,
+          sell: sales,
+          profit,
+          sold_date: sale.soldDate || new Date().toISOString().slice(0, 10),
+        },
       });
-    }
 
-    setTab("sold");
-    await loadAll();
-  } catch (e) {
-    showSync("⚠ 販売処理失敗: " + e.message, "#e05c2a", false);
-  }
-};
+      if (!remainingQty) {
+        await sbFetch("zaiko", {
+          method: "DELETE",
+          params: `?id=eq.${item.id}`,
+        });
+      } else {
+        await sbFetch("zaiko", {
+          method: "PATCH",
+          params: `?id=eq.${item.id}`,
+          body: { qty: remainingQty },
+        });
+      }
+
+      setTab("sold");
+      await loadAll();
+    } catch (e) {
+      showSync("⚠ 販売処理失敗: " + e.message, T.ageOld, false);
+    }
+  };
 
   // ---- 入荷予定CRUD ----
   const addNyuka = async () => {
     if (!nName.trim()) return alert("品目を入力してください");
-    if (!nPlace)       return alert("受取場所を選択してください");
-    showSync("保存中...", "#7a8599", false);
+    if (!nPlace) return alert("受取場所を選択してください");
+
+    showSync("保存中...", T.textMuted, false);
+
     try {
       await sbFetch("nyuka", {
         method: "POST",
-        body: { id: Date.now(), name: nName, qty: nQty, date: nDate, place: nPlace, buy: parseFloat(nBuy) || 0 },
+        body: {
+          id: Date.now(),
+          name: nName,
+          qty: nQty,
+          date: nDate,
+          place: nPlace,
+          buy: parseFloat(nBuy) || 0,
+        },
       });
-      setNName(""); setNQty(""); setNDate(""); setNPlace(""); setNBuy("");
+
+      setNName("");
+      setNQty("");
+      setNDate("");
+      setNPlace("");
+      setNBuy("");
       setShowNyukaForm(false);
       await loadAll();
-    } catch (e) { showSync("⚠ 保存失敗: " + e.message, "#e05c2a", false); }
+    } catch (e) {
+      showSync("⚠ 保存失敗: " + e.message, T.ageOld, false);
+    }
   };
 
-  const deleteNyuka = async (id) => {
+  const deleteNyuka = async id => {
     if (!confirm("削除しますか？")) return;
-    showSync("削除中...", "#7a8599", false);
+
+    showSync("削除中...", T.textMuted, false);
+
     try {
       await sbFetch("nyuka", { method: "DELETE", params: `?id=eq.${id}` });
       await loadAll();
-    } catch (e) { showSync("⚠ 削除失敗", "#e05c2a", false); }
+    } catch (e) {
+      showSync("⚠ 削除失敗", T.ageOld, false);
+    }
   };
 
   const updateNyuka = async (id, data) => {
-    showSync("保存中...", "#7a8599", false);
+    showSync("保存中...", T.textMuted, false);
+
     try {
-      await sbFetch("nyuka", { method: "PATCH", params: `?id=eq.${id}`, body: data });
+      await sbFetch("nyuka", {
+        method: "PATCH",
+        params: `?id=eq.${id}`,
+        body: data,
+      });
       await loadAll();
-    } catch (e) { showSync("⚠ 保存失敗: " + e.message, "#e05c2a", false); }
+    } catch (e) {
+      showSync("⚠ 保存失敗: " + e.message, T.ageOld, false);
+    }
   };
 
-  // ④ 入荷済み処理
-  const handleNyukazumi = async (item) => {
-    if (!confirm(`入荷済みにしますか？`)) return;
-    showSync("処理中...", "#7a8599", false);
+  const handleNyukazumi = async item => {
+    if (!confirm("入荷済みにしますか？")) return;
+
+    showSync("処理中...", T.textMuted, false);
+
     try {
       await sbFetch("zaiko", {
         method: "POST",
@@ -816,289 +1342,425 @@ setSold(s.map(toSold));
           buy_date: item.date || new Date().toISOString().slice(0, 10),
         },
       });
-      await sbFetch("nyuka", { method: "DELETE", params: `?id=eq.${item.id}` });
+
+      await sbFetch("nyuka", {
+        method: "DELETE",
+        params: `?id=eq.${item.id}`,
+      });
+
       await loadAll();
-    } catch (e) { showSync("⚠ 処理失敗: " + e.message, "#e05c2a", false); }
+    } catch (e) {
+      showSync("⚠ 処理失敗: " + e.message, T.ageOld, false);
+    }
   };
 
   // ---- 新規開拓CRUD ----
   const addKaitaku = async () => {
     if (!kTitle.trim()) return alert("仕入先・品目を入力してください");
-    showSync("保存中...", "#7a8599", false);
+
+    showSync("保存中...", T.textMuted, false);
+
     try {
       await sbFetch("kaitaku", {
         method: "POST",
-        body: { id: Date.now(), title: kTitle, memo: kMemo, url: kUrl },
+        body: {
+          id: Date.now(),
+          title: kTitle,
+          memo: kMemo,
+          url: kUrl,
+        },
       });
-      setKTitle(""); setKMemo(""); setKUrl("");
+
+      setKTitle("");
+      setKMemo("");
+      setKUrl("");
       setShowKaitakuForm(false);
       await loadAll();
-    } catch (e) { showSync("⚠ 保存失敗: " + e.message, "#e05c2a", false); }
+    } catch (e) {
+      showSync("⚠ 保存失敗: " + e.message, T.ageOld, false);
+    }
   };
 
-  const deleteKaitaku = async (id) => {
+  const deleteKaitaku = async id => {
     if (!confirm("削除しますか？")) return;
-    showSync("削除中...", "#7a8599", false);
+
+    showSync("削除中...", T.textMuted, false);
+
     try {
       await sbFetch("kaitaku", { method: "DELETE", params: `?id=eq.${id}` });
       await loadAll();
-    } catch (e) { showSync("⚠ 削除失敗", "#e05c2a", false); }
+    } catch (e) {
+      showSync("⚠ 削除失敗", T.ageOld, false);
+    }
   };
 
   const updateKaitaku = async (id, data) => {
-    showSync("保存中...", "#7a8599", false);
+    showSync("保存中...", T.textMuted, false);
+
     try {
-      await sbFetch("kaitaku", { method: "PATCH", params: `?id=eq.${id}`, body: data });
+      await sbFetch("kaitaku", {
+        method: "PATCH",
+        params: `?id=eq.${id}`,
+        body: data,
+      });
       await loadAll();
-    } catch (e) { showSync("⚠ 保存失敗: " + e.message, "#e05c2a", false); }
+    } catch (e) {
+      showSync("⚠ 保存失敗: " + e.message, T.ageOld, false);
+    }
   };
 
-  // ---- レンダリング ----
-const deleteSold = async (id) => {
-  if (!confirm("販売済みデータを削除しますか？")) return;
+  // ---- 販売済みCRUD ----
+  const deleteSold = async id => {
+    if (!confirm("販売済みデータを削除しますか？")) return;
 
-  showSync("削除中...", "#7a8599", false);
+    showSync("削除中...", T.textMuted, false);
 
-  try {
-    await sbFetch("sold", {
-      method: "DELETE",
-      params: `?id=eq.${id}`,
-    });
-
-    await loadAll();
-  } catch (e) {
-    showSync("⚠ 削除失敗: " + e.message, "#e05c2a", false);
-  }
-};
-const restoreSold = async (item) => {
-  if (!confirm(`「${item.name}」を在庫に戻しますか？`)) return;
-
-  showSync("在庫に戻しています...", "#7a8599", false);
-
-  try {
-    const qtyNum = getQtyNumber(item.qty);
-
-    // 販売済み側の buy/sell は合計金額なので、在庫に戻す時は単価へ戻す
-    const buyUnitPrice = qtyNum ? Number(item.buy || 0) / qtyNum : 0;
-    const sellUnitPrice = qtyNum ? Number(item.sell || 0) / qtyNum : 0;
-
-    // まず source_id が一致する在庫を探す
-    // なければ、商品名＋単価が同じ在庫を探す
-    const existing = zaiko.find(z => {
-      const sameSource = item.sourceId && z.id === item.sourceId;
-      const sameName = z.name === item.name;
-      const sameBuy = Number(z.buy || 0) === Number(buyUnitPrice || 0);
-      const sameSell = Number(z.sell || 0) === Number(sellUnitPrice || 0);
-
-      return sameSource || (sameName && sameBuy && sameSell);
-    });
-
-    if (existing) {
-      const newQty = addQty(existing.qty, item.qty);
-
-      await sbFetch("zaiko", {
-        method: "PATCH",
-        params: `?id=eq.${existing.id}`,
-        body: {
-          qty: newQty,
-          buy: buyUnitPrice,
-          sell: sellUnitPrice,
-        },
+    try {
+      await sbFetch("sold", {
+        method: "DELETE",
+        params: `?id=eq.${id}`,
       });
-    } else {
-      await sbFetch("zaiko", {
-        method: "POST",
-        body: {
-          id: Date.now(),
-          name: item.name,
-          qty: item.qty,
-          buy: buyUnitPrice,
-          sell: sellUnitPrice,
-          buy_date: new Date().toISOString().slice(0, 10),
-        },
-      });
+
+      await loadAll();
+    } catch (e) {
+      showSync("⚠ 削除失敗: " + e.message, T.ageOld, false);
     }
+  };
 
-    await sbFetch("sold", { method: "DELETE", params: `?id=eq.${item.id}` });
+  const restoreSold = async item => {
+    if (!confirm(`「${item.name}」を在庫に戻しますか？`)) return;
 
-    setTab("zaiko");
-    await loadAll();
-  } catch (e) {
-    showSync("⚠ 在庫戻し失敗: " + e.message, "#e05c2a", false);
-  }
-};
+    showSync("在庫に戻しています...", T.textMuted, false);
+
+    try {
+      const qtyNum = getQtyNumber(item.qty);
+
+      const buyUnitPrice = qtyNum ? Number(item.buy || 0) / qtyNum : 0;
+      const sellUnitPrice = qtyNum ? Number(item.sell || 0) / qtyNum : 0;
+
+      const existing = zaiko.find(z => {
+        const sameSource = item.sourceId && z.id === item.sourceId;
+        const sameName = z.name === item.name;
+        const sameBuy = Number(z.buy || 0) === Number(buyUnitPrice || 0);
+        const sameSell = Number(z.sell || 0) === Number(sellUnitPrice || 0);
+
+        return sameSource || (sameName && sameBuy && sameSell);
+      });
+
+      if (existing) {
+        const newQty = addQty(existing.qty, item.qty);
+
+        await sbFetch("zaiko", {
+          method: "PATCH",
+          params: `?id=eq.${existing.id}`,
+          body: {
+            qty: newQty,
+            buy: buyUnitPrice,
+            sell: sellUnitPrice,
+          },
+        });
+      } else {
+        await sbFetch("zaiko", {
+          method: "POST",
+          body: {
+            id: Date.now(),
+            name: item.name,
+            qty: item.qty,
+            buy: buyUnitPrice,
+            sell: sellUnitPrice,
+            buy_date: new Date().toISOString().slice(0, 10),
+          },
+        });
+      }
+
+      await sbFetch("sold", {
+        method: "DELETE",
+        params: `?id=eq.${item.id}`,
+      });
+
+      setTab("zaiko");
+      await loadAll();
+    } catch (e) {
+      showSync("⚠ 在庫戻し失敗: " + e.message, T.ageOld, false);
+    }
+  };
+
   return (
-    <div style={S.body}>
-      <header style={S.header}>
-        <div style={S.logo}>UMAMI<span style={S.logoSub}> stock</span></div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 11, fontWeight: 600, color: syncColor }}>{syncMsg}</span>
-        </div>
-      </header>
+    <>
+      <style>
+        {`
+          html, body, #root {
+            margin: 0;
+            min-height: 100%;
+            background: ${T.bg};
+          }
 
-      <div style={S.tabs}>
-        {[
-          ["zaiko", "在庫"],
-          ["nyuka", "入荷予定"],
-          ["kaitaku", "新規開拓"],
-          ["sold", "販売済み"]
-        ].map(([key, label]) => (
-          <button key={key} style={S.tab(tab === key)} onClick={() => setTab(key)}>
-            {label}
-          </button>
-        ))}
-      </div>
+          * {
+            box-sizing: border-box;
+          }
 
-      <div style={S.content}>
+          button,
+          input,
+          textarea,
+          select {
+            -webkit-tap-highlight-color: transparent;
+          }
+        `}
+      </style>
 
-        {/* 在庫 */}
-        {tab === "zaiko" && (
-          <div>
-            <div style={S.sectionHead}>
-              <div style={S.sectionTitle}>在庫</div>
-              <button style={S.btnPrimary} onClick={() => setShowZaikoForm(v => !v)}>＋ 追加</button>
-            </div>
-            {zaiko.length === 0
-              ? <div style={S.empty}><p>在庫データなし</p></div>
-              : <div style={S.cardGrid}>{zaiko.map(item => <ZaikoCard
-  key={item.id}
-  item={item}
-  onDelete={deleteZaiko}
-  onUpdate={updateZaiko}
-  onSold={handleSold}
-/>)}</div>
-            }
-            {showZaikoForm && (
-              <div style={S.formBox}>
-                <div style={S.formGrid}>
-                  <div style={S.formGroup}><label style={S.label}>品目</label><input style={S.input} value={zName} onChange={e=>setZName(e.target.value)} placeholder="例：鯛、トマト…"/></div>
-                  <div style={S.formGroup}><label style={S.label}>数量</label><input style={S.input} value={zQty} onChange={e=>setZQty(e.target.value)} placeholder="例：10kg、5箱"/></div>
-                  <div style={S.formGroup}><label style={S.label}>仕入れ日</label><input type="date" style={S.input} value={zDate} onChange={e=>setZDate(e.target.value)}/></div>
-                  <div style={S.formGroup}><label style={S.label}>仕入れ単価（円）</label><input type="number" style={S.input} value={zBuy} onChange={e=>setZBuy(e.target.value)} placeholder="0"/></div>
-                  <div style={S.formGroup}><label style={S.label}>販売単価（円）</label><input type="number" style={S.input} value={zSell} onChange={e=>setZSell(e.target.value)} placeholder="0"/></div>
-                  <div style={{alignSelf:"flex-end"}}><button style={S.btnPrimary} onClick={addZaiko}>追加する</button></div>
-                </div>
-              </div>
-            )}
+      <div style={S.body}>
+        <div style={S.appShell}>
+          <header style={S.header}>
+            <img src="/umami-logo.svg" alt="UMAMI stock" style={S.logoImg} />
+            <span style={{ ...S.syncText, color: syncColor }}>{syncMsg}</span>
+          </header>
+
+          <div style={S.tabs}>
+            {[
+              ["zaiko", "在庫"],
+              ["nyuka", "入荷予定"],
+              ["kaitaku", "新規開拓"],
+              ["sold", "販売済み"],
+            ].map(([key, label]) => (
+              <button key={key} style={S.tab(tab === key)} onClick={() => setTab(key)}>
+                {label}
+              </button>
+            ))}
           </div>
-        )}
 
-        {/* 入荷予定 */}
-        {tab === "nyuka" && (
-          <div>
-            <div style={S.sectionHead}>
-              <div style={S.sectionTitle}>入荷予定</div>
-              <button style={S.btnPrimary} onClick={() => setShowNyukaForm(v => !v)}>＋ 追加</button>
-            </div>
-            {nyuka.length === 0
-              ? <div style={S.empty}><p>入荷予定データなし</p></div>
-              : <div style={S.cardGrid}>{nyuka.map(item => <NyukaCard key={item.id} item={item} onDelete={deleteNyuka} onUpdate={updateNyuka} onNyukazumi={handleNyukazumi}/>)}</div>
-            }
-            {showNyukaForm && (
-              <div style={S.formBox}>
-                <div style={S.formGrid}>
-                  <div style={S.formGroup}><label style={S.label}>品目</label><input style={S.input} value={nName} onChange={e=>setNName(e.target.value)} placeholder="例：カツオ…"/></div>
-                  <div style={S.formGroup}><label style={S.label}>数量</label><input style={S.input} value={nQty} onChange={e=>setNQty(e.target.value)} placeholder="例：20kg"/></div>
-                  <div style={S.formGroup}><label style={S.label}>入荷日</label><input type="date" style={S.input} value={nDate} onChange={e=>setNDate(e.target.value)}/></div>
-                  <div style={S.formGroup}>
-                    <label style={S.label}>受取場所</label>
-                    <select style={S.select} value={nPlace} onChange={e=>setNPlace(e.target.value)}>
-                      <option value="">選択してください</option>
-                      <option value="市場">市場</option>
-                      <option value="ヤマト">ヤマト</option>
-                      <option value="佐川">佐川</option>
-                    </select>
-                  </div>
-                  <div style={S.formGroup}><label style={S.label}>仕入れ単価（円）</label><input type="number" style={S.input} value={nBuy} onChange={e=>setNBuy(e.target.value)} placeholder="0"/></div>
-                  <div style={{alignSelf:"flex-end"}}><button style={S.btnPrimary} onClick={addNyuka}>追加する</button></div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* 新規開拓 */}
-        {tab === "kaitaku" && (
-          <div>
-            <div style={S.sectionHead}>
-              <div style={S.sectionTitle}>新規開拓</div>
-              <button style={S.btnPrimary} onClick={() => setShowKaitakuForm(v => !v)}>＋ 追加</button>
-            </div>
-            {kaitaku.length === 0
-              ? <div style={S.empty}><p>新規開拓メモなし</p></div>
-              : <div style={S.cardGrid}>{kaitaku.map(item => <KaitakuCard key={item.id} item={item} onDelete={deleteKaitaku} onUpdate={updateKaitaku}/>)}</div>
-            }
-            {showKaitakuForm && (
-              <div style={S.formBox}>
-                <div style={S.formGrid}>
-                  <div style={S.formGroup}><label style={S.label}>仕入先・品目</label><input style={S.input} value={kTitle} onChange={e=>setKTitle(e.target.value)} placeholder="例：淡路島たまねぎ"/></div>
-                  <div style={S.formGroup}><label style={S.label}>URL</label><input type="url" style={S.input} value={kUrl} onChange={e=>setKUrl(e.target.value)} placeholder="https://..."/></div>
-                  <div style={{...S.formGroup, gridColumn:"span 2"}}><label style={S.label}>メモ・詳細</label><textarea style={S.textarea} value={kMemo} onChange={e=>setKMemo(e.target.value)} placeholder="産地、特徴、連絡先、価格感など…"/></div>
-                  <div style={{alignSelf:"flex-end"}}><button style={S.btnPrimary} onClick={addKaitaku}>追加する</button></div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-        {/* 販売済み */}
-          {tab === "sold" && (() => {
-            const summary = calcSoldSummary(sold, soldSummaryMode);
-
-            return (
+          <div style={S.content}>
+            {tab === "zaiko" && (
               <div>
-                              <div style={S.sectionHead}>
-                <div style={S.sectionTitle}>販売済み</div>
-                <button
-                  style={{ ...S.btnPrimary, visibility: "hidden", pointerEvents: "none" }}
-                >
-                  ＋ 追加
-                </button>
-              </div>
-
-                <div style={S.summaryBox}>
-                  <div style={S.summaryTabs}>
-                    <button
-                      style={S.summaryTab(soldSummaryMode === "month")}
-                      onClick={() => setSoldSummaryMode("month")}
-                    >
-                      今月
-                    </button>
-                    <button
-                      style={S.summaryTab(soldSummaryMode === "week")}
-                      onClick={() => setSoldSummaryMode("week")}
-                    >
-                      今週
-                    </button>
-                  </div>
-
-                  <div style={S.summaryGrid}>
-                    <div style={S.summaryItem}>
-                      <div style={S.summaryLabel}>
-                        {soldSummaryMode === "month" ? "今月売上" : "今週売上"}
-                      </div>
-                      <div style={S.summaryValue}>
-                        ¥{summary.sales.toLocaleString()}
-                      </div>
-                    </div>
-
-                    <div style={S.summaryItem}>
-                      <div style={S.summaryLabel}>
-                        {soldSummaryMode === "month" ? "今月粗利" : "今週粗利"}
-                      </div>
-                      <div style={summary.profit >= 0 ? S.profitPos : S.profitNeg}>
-                        ¥{summary.profit.toLocaleString()}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={{ marginTop: 10, fontSize: 12, color: "#7a8599", fontWeight: 600 }}>
-                    件数：{summary.count}件
-                  </div>
+                <div style={S.sectionHead}>
+                  <div style={S.sectionTitle}>在庫</div>
+                  <button style={S.btnAddCircle} onClick={() => setShowZaikoForm(v => !v)}>
+                    +
+                  </button>
                 </div>
 
-                {sold.length === 0
-                  ? <div style={S.empty}><p>販売済みデータなし</p></div>
-                  : <div style={S.cardGrid}>
+                {zaiko.length === 0 ? (
+                  <div style={S.empty}>
+                    <p>在庫データなし</p>
+                  </div>
+                ) : (
+                  <div style={S.cardGrid}>
+                    {zaiko.map(item => (
+                      <ZaikoCard
+                        key={item.id}
+                        item={item}
+                        onDelete={deleteZaiko}
+                        onUpdate={updateZaiko}
+                        onSold={handleSold}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {showZaikoForm && (
+                  <div style={S.formBox}>
+                    <div style={S.formGrid}>
+                      <div style={S.formGroup}>
+                        <label style={S.label}>品目</label>
+                        <input style={S.input} value={zName} onChange={e => setZName(e.target.value)} placeholder="例：鯛、トマト…" />
+                      </div>
+                      <div style={S.formGroup}>
+                        <label style={S.label}>数量</label>
+                        <input style={S.input} value={zQty} onChange={e => setZQty(e.target.value)} placeholder="例：10kg、5箱" />
+                      </div>
+                      <div style={S.formGroup}>
+                        <label style={S.label}>仕入れ日</label>
+                        <input type="date" style={S.input} value={zDate} onChange={e => setZDate(e.target.value)} />
+                      </div>
+                      <div style={S.formGroup}>
+                        <label style={S.label}>仕入れ単価（円）</label>
+                        <input type="number" style={S.input} value={zBuy} onChange={e => setZBuy(e.target.value)} placeholder="0" />
+                      </div>
+                      <div style={S.formGroup}>
+                        <label style={S.label}>販売単価（円）</label>
+                        <input type="number" style={S.input} value={zSell} onChange={e => setZSell(e.target.value)} placeholder="0" />
+                      </div>
+                      <button style={S.btnPrimary} onClick={addZaiko}>
+                        追加する
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {tab === "nyuka" && (
+              <div>
+                <div style={S.sectionHead}>
+                  <div style={S.sectionTitle}>入荷予定</div>
+                  <button style={S.btnAddCircle} onClick={() => setShowNyukaForm(v => !v)}>
+                    +
+                  </button>
+                </div>
+
+                {nyuka.length === 0 ? (
+                  <div style={S.empty}>
+                    <p>入荷予定データなし</p>
+                  </div>
+                ) : (
+                  <div style={S.cardGrid}>
+                    {nyuka.map(item => (
+                      <NyukaCard
+                        key={item.id}
+                        item={item}
+                        onDelete={deleteNyuka}
+                        onUpdate={updateNyuka}
+                        onNyukazumi={handleNyukazumi}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {showNyukaForm && (
+                  <div style={S.formBox}>
+                    <div style={S.formGrid}>
+                      <div style={S.formGroup}>
+                        <label style={S.label}>品目</label>
+                        <input style={S.input} value={nName} onChange={e => setNName(e.target.value)} placeholder="例：カツオ…" />
+                      </div>
+                      <div style={S.formGroup}>
+                        <label style={S.label}>数量</label>
+                        <input style={S.input} value={nQty} onChange={e => setNQty(e.target.value)} placeholder="例：20kg" />
+                      </div>
+                      <div style={S.formGroup}>
+                        <label style={S.label}>入荷日</label>
+                        <input type="date" style={S.input} value={nDate} onChange={e => setNDate(e.target.value)} />
+                      </div>
+                      <div style={S.formGroup}>
+                        <label style={S.label}>受取場所</label>
+                        <select style={S.select} value={nPlace} onChange={e => setNPlace(e.target.value)}>
+                          <option value="">選択してください</option>
+                          <option value="市場">市場</option>
+                          <option value="ヤマト">ヤマト</option>
+                          <option value="佐川">佐川</option>
+                        </select>
+                      </div>
+                      <div style={S.formGroup}>
+                        <label style={S.label}>仕入れ単価（円）</label>
+                        <input type="number" style={S.input} value={nBuy} onChange={e => setNBuy(e.target.value)} placeholder="0" />
+                      </div>
+                      <button style={S.btnPrimary} onClick={addNyuka}>
+                        追加する
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {tab === "kaitaku" && (
+              <div>
+                <div style={S.sectionHead}>
+                  <div style={S.sectionTitle}>新規開拓</div>
+                  <button style={S.btnAddCircle} onClick={() => setShowKaitakuForm(v => !v)}>
+                    +
+                  </button>
+                </div>
+
+                {kaitaku.length === 0 ? (
+                  <div style={S.empty}>
+                    <p>新規開拓メモなし</p>
+                  </div>
+                ) : (
+                  <div style={S.cardGrid}>
+                    {kaitaku.map(item => (
+                      <KaitakuCard
+                        key={item.id}
+                        item={item}
+                        onDelete={deleteKaitaku}
+                        onUpdate={updateKaitaku}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {showKaitakuForm && (
+                  <div style={S.formBox}>
+                    <div style={S.formGrid}>
+                      <div style={S.formGroup}>
+                        <label style={S.label}>仕入先・品目</label>
+                        <input style={S.input} value={kTitle} onChange={e => setKTitle(e.target.value)} placeholder="例：淡路島たまねぎ" />
+                      </div>
+                      <div style={S.formGroup}>
+                        <label style={S.label}>URL</label>
+                        <input type="url" style={S.input} value={kUrl} onChange={e => setKUrl(e.target.value)} placeholder="https://..." />
+                      </div>
+                      <div style={S.formGroup}>
+                        <label style={S.label}>メモ・詳細</label>
+                        <textarea style={S.textarea} value={kMemo} onChange={e => setKMemo(e.target.value)} placeholder="産地、特徴、連絡先、価格感など…" />
+                      </div>
+                      <button style={S.btnPrimary} onClick={addKaitaku}>
+                        追加する
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {tab === "sold" && (() => {
+              const summary = calcSoldSummary(sold, soldSummaryMode);
+
+              return (
+                <div>
+                  <div style={S.sectionHead}>
+                    <div style={S.sectionTitle}>販売済み</div>
+                    <button style={{ ...S.btnAddCircle, visibility: "hidden", pointerEvents: "none" }}>
+                      +
+                    </button>
+                  </div>
+
+                  <div style={S.summaryBox}>
+                    <div style={S.summaryTabs}>
+                      <button
+                        style={S.summaryTab(soldSummaryMode === "month")}
+                        onClick={() => setSoldSummaryMode("month")}
+                      >
+                        今月
+                      </button>
+                      <button
+                        style={S.summaryTab(soldSummaryMode === "week")}
+                        onClick={() => setSoldSummaryMode("week")}
+                      >
+                        今週
+                      </button>
+                    </div>
+
+                    <div style={S.summaryGrid}>
+                      <div style={S.summaryItem}>
+                        <div style={S.summaryLabel}>
+                          {soldSummaryMode === "month" ? "今月売上" : "今週売上"}
+                        </div>
+                        <div style={S.summaryValue}>
+                          ¥{summary.sales.toLocaleString()}
+                        </div>
+                      </div>
+
+                      <div style={S.summaryItem}>
+                        <div style={S.summaryLabel}>
+                          {soldSummaryMode === "month" ? "今月粗利" : "今週粗利"}
+                        </div>
+                        <div style={{ ...S.summaryValue, ...(summary.profit >= 0 ? S.profitPos : S.profitNeg) }}>
+                          ¥{summary.profit.toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ marginTop: 12, fontSize: 13, color: T.textMuted, fontWeight: 800 }}>
+                      件数：{summary.count}件
+                    </div>
+                  </div>
+
+                  {sold.length === 0 ? (
+                    <div style={S.empty}>
+                      <p>販売済みデータなし</p>
+                    </div>
+                  ) : (
+                    <div style={S.cardGrid}>
                       {sold.map(item => (
                         <SoldCard
                           key={item.id}
@@ -1108,11 +1770,13 @@ const restoreSold = async (item) => {
                         />
                       ))}
                     </div>
-                }
-              </div>
-            );
-          })()}
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
