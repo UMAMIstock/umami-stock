@@ -328,8 +328,8 @@ const S = {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 16,
-    padding: "0 5px",
+    marginBottom: 21,
+    padding: "0 16px",
   },
 
   sectionTitle: {
@@ -459,7 +459,7 @@ const S = {
     flexDirection: "column",
     alignItems: "stretch",
     justifyContent: "flex-start",
-    gap: 14,
+    gap: 5,
   },
 
   cardName: {
@@ -693,7 +693,7 @@ const S = {
 
   summaryTabs: {
     display: "flex",
-    gap: 8,
+    gap: 5,
     marginBottom: 14,
   },
 
@@ -719,7 +719,6 @@ const S = {
   summaryItem: {
     background: T.bg,
     borderRadius: 22,
-    padding: 14,
   },
 
   summaryLabel: {
@@ -796,7 +795,7 @@ function ZaikoCard({ item, onDelete, onUpdate, onSold }) {
         </div>
       }
       subContent={
-        <div style={{ display: "flex", alignItems: "center", gap: 18, overflow: "hidden" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 23, overflow: "hidden" }}>
           <span style={S.cardQty}>{item.qty || "—"}</span>
           {ds && (
             <span style={{ fontSize: 15, color: ds.color, fontWeight: 600, whiteSpace: "nowrap" }}>
