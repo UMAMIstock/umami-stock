@@ -275,7 +275,7 @@ const S = {
 
   logoImg: {
     display: "block",
-    width: 150,
+    width: 170,
     maxWidth: "72vw",
     height: "auto",
   },
@@ -296,14 +296,14 @@ const S = {
   tab: active => ({
     flex: "1 1 0",
     minWidth: 0,
-    height: 48,
+    height: 40,
     padding: "0 8px",
     borderRadius: 999,
     border: `1.5px solid ${T.green}`,
     background: active ? T.green : T.card,
     color: active ? "#fff" : T.green,
     fontSize: 15,
-    fontWeight: 700,
+    fontWeight: 600,
     cursor: "pointer",
     display: "flex",
     alignItems: "center",
