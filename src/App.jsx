@@ -448,10 +448,6 @@ const S = {
     boxSizing: "border-box",
   },
 
-  cardOpen: {
-    boxShadow: "0 0 0 2px rgba(81,104,42,0.16)",
-  },
-
   cardMain: {
     padding: "16px 16px",
     cursor: "pointer",
@@ -502,7 +498,7 @@ const S = {
   }),
 
   cardDetail: {
-    borderTop: `1px solid ${T.softBorder}`,
+    borderTop: `none`,
     padding: "14px 18px 18px",
   },
 
@@ -1642,11 +1638,11 @@ export default function App() {
                     <div style={S.formGrid}>
                       <div style={S.formGroup}>
                         <label style={S.label}>品目</label>
-                        <input style={S.input} value={nName} onChange={e => setNName(e.target.value)} placeholder="例：カツオ…" />
+                        <input style={S.input} value={nName} onChange={e => setNName(e.target.value)} placeholder="例：とうもろこし…" />
                       </div>
                       <div style={S.formGroup}>
                         <label style={S.label}>数量</label>
-                        <input style={S.input} value={nQty} onChange={e => setNQty(e.target.value)} placeholder="例：20kg" />
+                        <input style={S.input} value={nQty} onChange={e => setNQty(e.target.value)} placeholder="例：50本" />
                       </div>
                       <div style={S.formGroup}>
                         <label style={S.label}>入荷日</label>
