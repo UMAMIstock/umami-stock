@@ -318,7 +318,7 @@ const S = {
     background: T.panel,
     border: "none",
     margin: 0,
-    borderRadius: 34,
+    borderRadius: 44,
     padding: "28px 18px 26px",
     minHeight: "72vh",
     boxSizing: "border-box",
@@ -348,7 +348,7 @@ const S = {
     background: T.green,
     color: "#fff",
     fontSize: 18,
-    fontWeight: 300,
+    fontWeight: 400,
     cursor: "pointer",
     display: "flex",
     alignItems: "center",
@@ -472,15 +472,15 @@ const S = {
   },
 
   cardQty: {
-    fontSize: 17,
+    fontSize: 15,
     fontWeight: 500,
     color: T.qty,
     letterSpacing: "0.02em",
   },
 
   cardSubText: {
-    fontSize: 17,
-    fontWeight: 800,
+    fontSize: 15,
+    fontWeight: 500,
     color: T.textSub,
     lineHeight: 1.5,
   },
