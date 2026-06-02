@@ -328,8 +328,8 @@ const S = {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 22,
-    padding: "0 12px",
+    marginBottom: 16,
+    padding: "0 5px",
   },
 
   sectionTitle: {
@@ -341,20 +341,21 @@ const S = {
   },
 
   btnAddCircle: {
-    width: 46,
-    height: 46,
+    width: 25,
+    height: 25,
     borderRadius: "50%",
     border: "none",
     background: T.green,
     color: "#fff",
-    fontSize: 33,
-    lineHeight: 1,
+    fontSize: 18,
     fontWeight: 300,
     cursor: "pointer",
-    display: "grid",
-    placeItems: "center",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
     padding: 0,
-    fontFamily: "system-ui, sans-serif",
+    lineHeight: "46px",
+    fontFamily: "Arial, system-ui, sans-serif",
   },
 
   btnPrimary: {
@@ -365,7 +366,7 @@ const S = {
     gap: 6,
     padding: "12px 18px",
     borderRadius: 999,
-    fontSize: 14,
+    fontSize: 18,
     fontWeight: 800,
     cursor: "pointer",
     border: "none",
@@ -452,13 +453,13 @@ const S = {
   },
 
   cardMain: {
-    padding: "22px 22px",
+    padding: "16px 16px",
     cursor: "pointer",
     display: "flex",
     flexDirection: "column",
     alignItems: "stretch",
     justifyContent: "flex-start",
-    gap: 16,
+    gap: 14,
   },
 
   cardName: {
@@ -485,14 +486,14 @@ const S = {
   },
 
   cardArrow: open => ({
-    width: 21,
-    height: 21,
+    width: 25,
+    height: 25,
     borderRadius: "50%",
     background: T.green,
     color: "#fff",
     display: "grid",
     placeItems: "center",
-    fontSize: 15,
+    fontSize: 18,
     fontWeight: 400,
     flexShrink: 0,
     transform: open ? "rotate(180deg)" : "none",
@@ -1534,7 +1535,7 @@ export default function App() {
                 <div style={S.sectionHead}>
                   <div style={S.sectionTitle}>在庫</div>
                   <button style={S.btnAddCircle} onClick={() => setShowZaikoForm(v => !v)}>
-                    +
+                    ＋
                   </button>
                 </div>
 
@@ -1593,7 +1594,7 @@ export default function App() {
                 <div style={S.sectionHead}>
                   <div style={S.sectionTitle}>入荷予定</div>
                   <button style={S.btnAddCircle} onClick={() => setShowNyukaForm(v => !v)}>
-                    +
+                    ＋
                   </button>
                 </div>
 
@@ -1657,7 +1658,7 @@ export default function App() {
                 <div style={S.sectionHead}>
                   <div style={S.sectionTitle}>新規開拓</div>
                   <button style={S.btnAddCircle} onClick={() => setShowKaitakuForm(v => !v)}>
-                    +
+                    ＋
                   </button>
                 </div>
 
@@ -1748,10 +1749,6 @@ export default function App() {
                           ¥{summary.profit.toLocaleString()}
                         </div>
                       </div>
-                    </div>
-
-                    <div style={{ marginTop: 12, fontSize: 13, color: T.textMuted, fontWeight: 800 }}>
-                      件数：{summary.count}件
                     </div>
                   </div>
 
