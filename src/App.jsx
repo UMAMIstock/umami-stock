@@ -6,9 +6,9 @@ const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 // ---- テーマ ----
 const T = {
   green: "#51682a",
-  bg: "#fffef9",
-  panel: "#e6e5dc",
-  card: "#fffef9",
+  bg: "#ffffff",
+  panel: "#f0f0e9",
+  card: "#ffffff",
   qty: "#86956a",
   ageFresh: "#7eae53",
   ageMid: "#a09545",
@@ -275,7 +275,7 @@ const S = {
 
   logoImg: {
     display: "block",
-    width: 170,
+    width: 185,
     maxWidth: "72vw",
     height: "auto",
   },
@@ -288,7 +288,7 @@ const S = {
 
   tabs: {
     display: "flex",
-    gap: 8,
+    gap: 4,
     padding: 0,
     marginBottom: 18,
   },
@@ -463,8 +463,8 @@ const S = {
   },
 
   cardName: {
-    fontSize: 18,
-    fontWeight: 600,
+    fontSize: 17,
+    fontWeight: 500,
     color: T.green,
     lineHeight: 1.35,
     letterSpacing: "0.01em",
@@ -472,14 +472,14 @@ const S = {
   },
 
   cardQty: {
-    fontSize: 18,
-    fontWeight: 600,
+    fontSize: 17,
+    fontWeight: 500,
     color: T.qty,
     letterSpacing: "0.02em",
   },
 
   cardSubText: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: 800,
     color: T.textSub,
     lineHeight: 1.5,
