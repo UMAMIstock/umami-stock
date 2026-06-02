@@ -6,7 +6,7 @@ const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 // ---- テーマ ----
 const T = {
   green: "#51682a",
-  bg: "#f0f0e9",
+  bg: "#fffef9",
   panel: "#e6e5dc",
   card: "#fffef9",
   qty: "#86956a",
@@ -275,7 +275,7 @@ const S = {
 
   logoImg: {
     display: "block",
-    width: 260,
+    width: 150,
     maxWidth: "72vw",
     height: "auto",
   },
