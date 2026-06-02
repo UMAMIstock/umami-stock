@@ -366,7 +366,7 @@ const S = {
     gap: 6,
     padding: "12px 18px",
     borderRadius: 999,
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: 500,
     cursor: "pointer",
     border: "none",
@@ -992,7 +992,7 @@ function KaitakuCard({ item, onDelete, onUpdate }) {
       subContent={
         <div
           style={{
-            fontSize: 16,
+            fontSize: 15,
             color: T.textSub,
             fontWeight: 500,
             lineHeight: 1.5,
@@ -1007,12 +1007,6 @@ function KaitakuCard({ item, onDelete, onUpdate }) {
       }
       detailContent={
         <>
-          {item.memo && (
-            <div style={{ fontSize: 14, color: T.textSub, lineHeight: 1.7, whiteSpace: "pre-wrap", paddingBottom: 6, fontWeight: 500 }}>
-              {item.memo}
-            </div>
-          )}
-
           {item.url && (
             <a href={item.url} target="_blank" rel="noreferrer" style={S.btnUrl}>
               サイトを開く
@@ -1052,7 +1046,7 @@ function SoldCard({ item, onDelete, onRestore }) {
       subContent={
         <div style={{ display: "flex", alignItems: "center", gap: 18, overflow: "hidden" }}>
           <span style={S.cardQty}>{item.qty || "—"}</span>
-          <span style={{ fontSize: 18, color: T.textSub, fontWeight: 500, whiteSpace: "nowrap" }}>
+          <span style={{ fontSize: 15, color: T.textSub, fontWeight: 500, whiteSpace: "nowrap" }}>
             {formatDate(item.soldDate)}
           </span>
         </div>
@@ -1538,7 +1532,35 @@ export default function App() {
                   </button>
                 </div>
 
-                {zaiko.length === 0 && !showZaikoForm ? (
+                {showZaikoForm ? (
+                  <div style={S.formBox}>
+                    <div style={S.formGrid}>
+                      <div style={S.formGroup}>
+                        <label style={S.label}>品目</label>
+                        <input style={S.input} value={zName} onChange={e => setZName(e.target.value)} placeholder="例：鯛、トマト…" />
+                      </div>
+                      <div style={S.formGroup}>
+                        <label style={S.label}>数量</label>
+                        <input style={S.input} value={zQty} onChange={e => setZQty(e.target.value)} placeholder="例：10kg、5箱" />
+                      </div>
+                      <div style={S.formGroup}>
+                        <label style={S.label}>仕入れ日</label>
+                        <input type="date" style={S.input} value={zDate} onChange={e => setZDate(e.target.value)} />
+                      </div>
+                      <div style={S.formGroup}>
+                        <label style={S.label}>仕入れ単価（円）</label>
+                        <input type="number" style={S.input} value={zBuy} onChange={e => setZBuy(e.target.value)} placeholder="0" />
+                      </div>
+                      <div style={S.formGroup}>
+                        <label style={S.label}>販売単価（円）</label>
+                        <input type="number" style={S.input} value={zSell} onChange={e => setZSell(e.target.value)} placeholder="0" />
+                      </div>
+                      <button style={S.btnPrimary} onClick={addZaiko}>
+                        追加する
+                      </button>
+                    </div>
+                  </div>
+                ) : zaiko.length === 0 ? (
                   <div style={S.empty}>
                     <p>在庫データなし</p>
                   </div>
@@ -1615,16 +1637,16 @@ export default function App() {
                   </div>
                 )}
 
-                {showNyukaForm && (
+                {showNyukaForm ? (
                   <div style={S.formBox}>
                     <div style={S.formGrid}>
                       <div style={S.formGroup}>
                         <label style={S.label}>品目</label>
-                        <input style={S.input} value={nName} onChange={e => setNName(e.target.value)} placeholder="例：とうもろこし…" />
+                        <input style={S.input} value={nName} onChange={e => setNName(e.target.value)} placeholder="例：カツオ…" />
                       </div>
                       <div style={S.formGroup}>
                         <label style={S.label}>数量</label>
-                        <input style={S.input} value={nQty} onChange={e => setNQty(e.target.value)} placeholder="例：50本" />
+                        <input style={S.input} value={nQty} onChange={e => setNQty(e.target.value)} placeholder="例：20kg" />
                       </div>
                       <div style={S.formGroup}>
                         <label style={S.label}>入荷日</label>
@@ -1635,8 +1657,8 @@ export default function App() {
                         <select style={S.select} value={nPlace} onChange={e => setNPlace(e.target.value)}>
                           <option value="">選択してください</option>
                           <option value="市場">市場</option>
-                          <option value="ヤマト">ヤマト営業所</option>
-                          <option value="佐川">佐川営業所</option>
+                          <option value="ヤマト">ヤマト</option>
+                          <option value="佐川">佐川</option>
                         </select>
                       </div>
                       <div style={S.formGroup}>
@@ -1648,9 +1670,23 @@ export default function App() {
                       </button>
                     </div>
                   </div>
+                ) : nyuka.length === 0 ? (
+                  <div style={S.empty}>
+                    <p>入荷予定データなし</p>
+                  </div>
+                ) : (
+                  <div style={S.cardGrid}>
+                    {nyuka.map(item => (
+                      <NyukaCard
+                        key={item.id}
+                        item={item}
+                        onDelete={deleteNyuka}
+                        onUpdate={updateNyuka}
+                        onNyukazumi={handleNyukazumi}
+                      />
+                    ))}
+                  </div>
                 )}
-              </div>
-            )}
 
             {tab === "kaitaku" && (
               <div>
@@ -1678,7 +1714,7 @@ export default function App() {
                   </div>
                 )}
 
-                {showKaitakuForm && (
+                {showKaitakuForm ? (
                   <div style={S.formBox}>
                     <div style={S.formGrid}>
                       <div style={S.formGroup}>
@@ -1698,9 +1734,22 @@ export default function App() {
                       </button>
                     </div>
                   </div>
+                ) : kaitaku.length === 0 ? (
+                  <div style={S.empty}>
+                    <p>新規開拓メモなし</p>
+                  </div>
+                ) : (
+                  <div style={S.cardGrid}>
+                    {kaitaku.map(item => (
+                      <KaitakuCard
+                        key={item.id}
+                        item={item}
+                        onDelete={deleteKaitaku}
+                        onUpdate={updateKaitaku}
+                      />
+                    ))}
+                  </div>
                 )}
-              </div>
-            )}
 
             {tab === "sold" && (() => {
               const summary = calcSoldSummary(sold, soldSummaryMode);
