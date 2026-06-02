@@ -282,7 +282,7 @@ const S = {
 
   syncText: {
     fontSize: 11,
-    fontWeight: 700,
+    fontWeight: 500,
     whiteSpace: "nowrap",
   },
 
@@ -303,7 +303,7 @@ const S = {
     background: active ? T.green : T.card,
     color: active ? "#fff" : T.green,
     fontSize: 15,
-    fontWeight: 300,
+    fontWeight: 400,
     cursor: "pointer",
     display: "flex",
     alignItems: "center",
@@ -641,7 +641,7 @@ const S = {
     padding: "10px 8px",
     borderRadius: 999,
     fontSize: 13,
-    fontWeight: 800,
+    fontWeight: 500,
     cursor: "pointer",
     background: T.green,
     color: "#fff",
@@ -654,7 +654,7 @@ const S = {
     padding: "10px 8px",
     borderRadius: 999,
     fontSize: 13,
-    fontWeight: 800,
+    fontWeight: 500,
     cursor: "pointer",
     background: "rgba(255,255,255,0.65)",
     color: T.textMuted,
@@ -670,17 +670,17 @@ const S = {
     flexDirection: "column",
     alignItems: "center",
     gap: 12,
-    fontWeight: 700,
+    fontWeight: 500,
   },
 
   profitPos: {
     color: T.ageFresh,
-    fontWeight: 800,
+    fontWeight: 500,
   },
 
   profitNeg: {
     color: T.ageOld,
-    fontWeight: 800,
+    fontWeight: 500,
   },
 
   summaryBox: {
@@ -705,7 +705,7 @@ const S = {
     background: active ? T.green : T.card,
     color: active ? "#fff" : T.green,
     fontSize: 14,
-    fontWeight: 800,
+    fontWeight: 500,
     cursor: "pointer",
     fontFamily: "'Noto Sans JP', system-ui, sans-serif",
   }),
@@ -723,14 +723,14 @@ const S = {
 
   summaryLabel: {
     fontSize: 12,
-    fontWeight: 800,
+    fontWeight: 500,
     color: T.textMuted,
     marginBottom: 5,
   },
 
   summaryValue: {
     fontSize: 20,
-    fontWeight: 900,
+    fontWeight: 500,
     color: T.green,
   },
 };
@@ -798,7 +798,7 @@ function ZaikoCard({ item, onDelete, onUpdate, onSold }) {
         <div style={{ display: "flex", alignItems: "center", gap: 23, overflow: "hidden" }}>
           <span style={S.cardQty}>{item.qty || "—"}</span>
           {ds && (
-            <span style={{ fontSize: 15, color: ds.color, fontWeight: 600, whiteSpace: "nowrap" }}>
+            <span style={{ fontSize: 15, color: ds.color, fontWeight: 500, whiteSpace: "nowrap" }}>
               {ds.label}
             </span>
           )}
@@ -914,7 +914,7 @@ function NyukaCard({ item, onDelete, onUpdate, onNyukazumi }) {
         <div style={{ display: "flex", alignItems: "center", gap: 18, overflow: "hidden" }}>
           <span style={S.cardQty}>{item.qty || "—"}</span>
           {dl && (
-            <span style={{ fontSize: 15, color: dl.color, fontWeight: 600, whiteSpace: "nowrap" }}>
+            <span style={{ fontSize: 15, color: dl.color, fontWeight: 500, whiteSpace: "nowrap" }}>
               {dl.label}
             </span>
           )}
@@ -949,8 +949,8 @@ function NyukaCard({ item, onDelete, onUpdate, onNyukazumi }) {
               <input style={S.editInput} value={date} onChange={e => setDate(e.target.value)} type="date" />
               <select style={S.editInput} value={place} onChange={e => setPlace(e.target.value)}>
                 <option value="市場">尼崎市場</option>
-                <option value="ヤマト">ヤマト</option>
-                <option value="佐川">佐川</option>
+                <option value="ヤマト">ヤマト営業所</option>
+                <option value="佐川">佐川営業所</option>
               </select>
               <input style={S.editInput} value={buy} onChange={e => setBuy(e.target.value)} type="number" placeholder="仕入れ単価" />
               <div style={S.editBtns}>
@@ -994,7 +994,7 @@ function KaitakuCard({ item, onDelete, onUpdate }) {
           style={{
             fontSize: 16,
             color: T.textSub,
-            fontWeight: 800,
+            fontWeight: 500,
             lineHeight: 1.5,
             textAlign: "left",
             overflow: "hidden",
@@ -1008,7 +1008,7 @@ function KaitakuCard({ item, onDelete, onUpdate }) {
       detailContent={
         <>
           {item.memo && (
-            <div style={{ fontSize: 14, color: T.textSub, lineHeight: 1.7, whiteSpace: "pre-wrap", paddingBottom: 6, fontWeight: 700 }}>
+            <div style={{ fontSize: 14, color: T.textSub, lineHeight: 1.7, whiteSpace: "pre-wrap", paddingBottom: 6, fontWeight: 500 }}>
               {item.memo}
             </div>
           )}
@@ -1052,7 +1052,7 @@ function SoldCard({ item, onDelete, onRestore }) {
       subContent={
         <div style={{ display: "flex", alignItems: "center", gap: 18, overflow: "hidden" }}>
           <span style={S.cardQty}>{item.qty || "—"}</span>
-          <span style={{ fontSize: 18, color: T.textSub, fontWeight: 800, whiteSpace: "nowrap" }}>
+          <span style={{ fontSize: 18, color: T.textSub, fontWeight: 500, whiteSpace: "nowrap" }}>
             {formatDate(item.soldDate)}
           </span>
         </div>
@@ -1538,7 +1538,7 @@ export default function App() {
                   </button>
                 </div>
 
-                {zaiko.length === 0 ? (
+                {zaiko.length === 0 && !showZaikoForm ? (
                   <div style={S.empty}>
                     <p>在庫データなし</p>
                   </div>
@@ -1597,7 +1597,7 @@ export default function App() {
                   </button>
                 </div>
 
-                {nyuka.length === 0 ? (
+                nyuka.length === 0 && !showNyukaForm ? (
                   <div style={S.empty}>
                     <p>入荷予定データなし</p>
                   </div>
@@ -1620,11 +1620,11 @@ export default function App() {
                     <div style={S.formGrid}>
                       <div style={S.formGroup}>
                         <label style={S.label}>品目</label>
-                        <input style={S.input} value={nName} onChange={e => setNName(e.target.value)} placeholder="例：カツオ…" />
+                        <input style={S.input} value={nName} onChange={e => setNName(e.target.value)} placeholder="例：とうもろこし…" />
                       </div>
                       <div style={S.formGroup}>
                         <label style={S.label}>数量</label>
-                        <input style={S.input} value={nQty} onChange={e => setNQty(e.target.value)} placeholder="例：20kg" />
+                        <input style={S.input} value={nQty} onChange={e => setNQty(e.target.value)} placeholder="例：50本" />
                       </div>
                       <div style={S.formGroup}>
                         <label style={S.label}>入荷日</label>
@@ -1635,8 +1635,8 @@ export default function App() {
                         <select style={S.select} value={nPlace} onChange={e => setNPlace(e.target.value)}>
                           <option value="">選択してください</option>
                           <option value="市場">市場</option>
-                          <option value="ヤマト">ヤマト</option>
-                          <option value="佐川">佐川</option>
+                          <option value="ヤマト">ヤマト営業所</option>
+                          <option value="佐川">佐川営業所</option>
                         </select>
                       </div>
                       <div style={S.formGroup}>
@@ -1661,7 +1661,7 @@ export default function App() {
                   </button>
                 </div>
 
-                {kaitaku.length === 0 ? (
+                {kaitaku.length === 0 && !showKaitakuForm ? (
                   <div style={S.empty}>
                     <p>新規開拓メモなし</p>
                   </div>
