@@ -516,7 +516,6 @@ function NyukaCard({ item, onDelete, onUpdate, onNyukazumi }) {
             <button style={S.btnEdit} onClick={() => setEditing(true)}>編集</button>
           )}
           <button style={S.btnNyuka} onClick={() => onNyukazumi(item)}>入荷済み</button>
-          <button style={S.btnNyuka} onClick={() => onRestore(item)}>在庫に戻す</button>
           <button style={S.btnDel}   onClick={() => onDelete(item.id)}>削除</button>
         </>
       }
@@ -619,7 +618,9 @@ function SoldCard({ item, onDelete, onRestore }) {
               <span style={S.dk}>{k}</span><span style={S.dv}>{v}</span>
             </div>
           ))}
-
+          <button style={S.btnNyuka} onClick={() => onRestore(item)}>
+            在庫に戻す
+          </button>
           <button style={S.btnDel} onClick={() => onDelete(item.id)}>
             削除
           </button>
@@ -1095,7 +1096,7 @@ const restoreSold = async (item) => {
               </div>
             );
           })()}
-                </div>
-              </div>
-            );
-          }
+      </div>
+    </div>
+  );
+}
