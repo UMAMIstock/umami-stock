@@ -98,6 +98,19 @@ function subtractQty(currentQty, soldQty) {
   return `${remaining}${current.unit}`;
 }
 
+function addQty(currentQty, restoreQty) {
+  const current = parseQty(currentQty);
+  const restore = parseQty(restoreQty);
+
+  if (!current || !restore) return currentQty || restoreQty;
+
+  // 単位が違う場合は無理に足さない
+  if (current.unit !== restore.unit) return currentQty || restoreQty;
+
+  const total = current.num + restore.num;
+  return `${total}${current.unit}`;
+}
+
 function getMonthKey(date = new Date()) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 }
@@ -154,21 +167,33 @@ function calcSoldSummary(items, mode) {
 // ---- スタイル定数 ----
 const S = {
   body:        { background: "#f0f2f5", minHeight: "100vh", fontFamily: "'Noto Sans JP', sans-serif", color: "#1a1f2e" },
-  header:      { position: "sticky", top: 0, zIndex: 100, background: "rgba(240,242,245,0.95)", backdropFilter: "blur(12px)", borderBottom: "1px solid #dde1e9", padding: "0 16px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 64 },
+  header: {
+    position: "sticky",
+    top: 0,
+    zIndex: 100,
+    background: "rgba(248,251,248,0.95)",
+    backdropFilter: "blur(12px)",
+    borderBottom: "none",
+    padding: "0 16px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    height: 58
+  },
   logo:        { fontFamily: "'Sora', sans-serif", fontWeight: 800, fontSize: 20, color: "#5a9e2f" },
   logoSub:     { fontWeight: 400, color: "#1a1f2e" },
   badge:       { fontSize: 11, background: "#5a9e2f", color: "#fff", padding: "2px 10px", borderRadius: 20, fontWeight: 700, letterSpacing: 1 },
   tabs: {
     display: "flex",
     gap: 0,
-    padding: "16px 6px 0",
+    padding: "8px 6px 0",
   },
   tab: a => ({
     flex: "1 1 0",
     minWidth: 0,
     padding: "10px 4px",
     borderRadius: "10px 10px 0 0",
-    border: "1px solid #dde1e9",
+    border: "none",
     borderBottom: "none",
     background: a ? "#f7f8fa" : "#fff",
     color: a ? "#5a9e2f" : "#7a8599",
@@ -183,7 +208,10 @@ const S = {
   }),
   content: {
     background: "#f7f8fa",
-    border: "1px solid #dde1e9",
+    borderLeft: "1px solid #dde1e9",
+    borderRight: "1px solid #dde1e9",
+    borderBottom: "1px solid #dde1e9",
+    borderTop: "none",
     margin: "0 6px 32px",
     borderRadius: "0 0 12px 12px",
     padding: "20px 12px",
@@ -488,6 +516,7 @@ function NyukaCard({ item, onDelete, onUpdate, onNyukazumi }) {
             <button style={S.btnEdit} onClick={() => setEditing(true)}>編集</button>
           )}
           <button style={S.btnNyuka} onClick={() => onNyukazumi(item)}>入荷済み</button>
+          <button style={S.btnNyuka} onClick={() => onRestore(item)}>在庫に戻す</button>
           <button style={S.btnDel}   onClick={() => onDelete(item.id)}>削除</button>
         </>
       }
@@ -558,7 +587,7 @@ function KaitakuCard({ item, onDelete, onUpdate }) {
   );
 }
 
-function SoldCard({ item, onDelete }) {
+function SoldCard({ item, onDelete, onRestore }) {
   return (
     <StockCard
       mainContent={
@@ -824,18 +853,63 @@ setSold(s.map(toSold));
   };
 
   // ---- レンダリング ----
-  const deleteSold = async (id) => {
-    if (!confirm("販売済みデータを削除しますか？")) return;
+const restoreSold = async (item) => {
+  if (!confirm(`「${item.name}」を在庫に戻しますか？`)) return;
 
-    showSync("削除中...", "#7a8599", false);
+  showSync("在庫に戻しています...", "#7a8599", false);
 
-    try {
-      await sbFetch("sold", { method: "DELETE", params: `?id=eq.${id}` });
-      await loadAll();
-    } catch (e) {
-      showSync("⚠ 削除失敗: " + e.message, "#e05c2a", false);
+  try {
+    const qtyNum = getQtyNumber(item.qty);
+
+    // 販売済み側の buy/sell は合計金額なので、在庫に戻す時は単価へ戻す
+    const buyUnitPrice = qtyNum ? Number(item.buy || 0) / qtyNum : 0;
+    const sellUnitPrice = qtyNum ? Number(item.sell || 0) / qtyNum : 0;
+
+    // まず source_id が一致する在庫を探す
+    // なければ、商品名＋単価が同じ在庫を探す
+    const existing = zaiko.find(z => {
+      const sameSource = item.sourceId && z.id === item.sourceId;
+      const sameName = z.name === item.name;
+      const sameBuy = Number(z.buy || 0) === Number(buyUnitPrice || 0);
+      const sameSell = Number(z.sell || 0) === Number(sellUnitPrice || 0);
+
+      return sameSource || (sameName && sameBuy && sameSell);
+    });
+
+    if (existing) {
+      const newQty = addQty(existing.qty, item.qty);
+
+      await sbFetch("zaiko", {
+        method: "PATCH",
+        params: `?id=eq.${existing.id}`,
+        body: {
+          qty: newQty,
+          buy: buyUnitPrice,
+          sell: sellUnitPrice,
+        },
+      });
+    } else {
+      await sbFetch("zaiko", {
+        method: "POST",
+        body: {
+          id: Date.now(),
+          name: item.name,
+          qty: item.qty,
+          buy: buyUnitPrice,
+          sell: sellUnitPrice,
+          buy_date: new Date().toISOString().slice(0, 10),
+        },
+      });
     }
-  };
+
+    await sbFetch("sold", { method: "DELETE", params: `?id=eq.${item.id}` });
+
+    setTab("zaiko");
+    await loadAll();
+  } catch (e) {
+    showSync("⚠ 在庫戻し失敗: " + e.message, "#e05c2a", false);
+  }
+};
   return (
     <div style={S.body}>
       <header style={S.header}>
@@ -1009,7 +1083,12 @@ setSold(s.map(toSold));
                   ? <div style={S.empty}><p>販売済みデータなし</p></div>
                   : <div style={S.cardGrid}>
                       {sold.map(item => (
-                        <SoldCard key={item.id} item={item} onDelete={deleteSold} />
+                        <SoldCard
+                          key={item.id}
+                          item={item}
+                          onDelete={deleteSold}
+                          onRestore={restoreSold}
+                        />
                       ))}
                     </div>
                 }
