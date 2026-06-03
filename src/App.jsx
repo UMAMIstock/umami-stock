@@ -358,6 +358,12 @@ const S = {
     fontFamily: "Arial, system-ui, sans-serif",
   },
 
+  plusIcon: {
+    display: "block",
+    transform: "translateY(-1px)",
+    lineHeight: 1,
+  },
+
   btnPrimary: {
     width: "100%",
     display: "inline-flex",
@@ -1611,56 +1617,68 @@ export default function App() {
                 <div style={S.sectionHead}>
                   <div style={S.sectionTitle}>入荷予定</div>
                   <button style={S.btnAddCircle} onClick={() => setShowNyukaForm(v => !v)}>
-                    ＋
+                    <span style={S.plusIcon}>＋</span>
                   </button>
                 </div>
-
-                {nyuka.length === 0 && !showNyukaForm ? (
-                  <div style={S.empty}>
-                    <p>入荷予定データなし</p>
-                  </div>
-                ) : (
-                  <div style={S.cardGrid}>
-                    {nyuka.map(item => (
-                      <NyukaCard
-                        key={item.id}
-                        item={item}
-                        onDelete={deleteNyuka}
-                        onUpdate={updateNyuka}
-                        onNyukazumi={handleNyukazumi}
-                      />
-                    ))}
-                  </div>
-                )}
 
                 {showNyukaForm ? (
                   <div style={S.formBox}>
                     <div style={S.formGrid}>
                       <div style={S.formGroup}>
                         <label style={S.label}>品目</label>
-                        <input style={S.input} value={nName} onChange={e => setNName(e.target.value)} placeholder="例：とうもろこし…" />
+                        <input
+                          style={S.input}
+                          value={nName}
+                          onChange={e => setNName(e.target.value)}
+                          placeholder="例：とうもろこし…"
+                        />
                       </div>
+
                       <div style={S.formGroup}>
                         <label style={S.label}>数量</label>
-                        <input style={S.input} value={nQty} onChange={e => setNQty(e.target.value)} placeholder="例：50本" />
+                        <input
+                          style={S.input}
+                          value={nQty}
+                          onChange={e => setNQty(e.target.value)}
+                          placeholder="例：50本"
+                        />
                       </div>
+
                       <div style={S.formGroup}>
                         <label style={S.label}>入荷日</label>
-                        <input type="date" style={S.input} value={nDate} onChange={e => setNDate(e.target.value)} />
+                        <input
+                          type="date"
+                          style={S.input}
+                          value={nDate}
+                          onChange={e => setNDate(e.target.value)}
+                        />
                       </div>
+
                       <div style={S.formGroup}>
                         <label style={S.label}>受取場所</label>
-                        <select style={S.select} value={nPlace} onChange={e => setNPlace(e.target.value)}>
+                        <select
+                          style={S.select}
+                          value={nPlace}
+                          onChange={e => setNPlace(e.target.value)}
+                        >
                           <option value="">選択してください</option>
                           <option value="市場">市場</option>
                           <option value="ヤマト">ヤマト</option>
                           <option value="佐川">佐川</option>
                         </select>
                       </div>
+
                       <div style={S.formGroup}>
                         <label style={S.label}>仕入れ単価（円）</label>
-                        <input type="number" style={S.input} value={nBuy} onChange={e => setNBuy(e.target.value)} placeholder="0" />
+                        <input
+                          type="number"
+                          style={S.input}
+                          value={nBuy}
+                          onChange={e => setNBuy(e.target.value)}
+                          placeholder="0"
+                        />
                       </div>
+
                       <button style={S.btnPrimary} onClick={addNyuka}>
                         追加する
                       </button>
@@ -1683,6 +1701,8 @@ export default function App() {
                     ))}
                   </div>
                 )}
+              </div>
+            )}
 
             {tab === "kaitaku" && (
               <div>
