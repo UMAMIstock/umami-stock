@@ -299,7 +299,7 @@ const S = {
     height: 36,
     padding: "0 8px",
     borderRadius: 999,
-    border: `1.5px solid ${T.green}`,
+    border: `1px solid ${T.green}`,
     background: active ? T.green : T.card,
     color: active ? "#fff" : T.green,
     fontSize: 15,
