@@ -537,7 +537,7 @@ const S = {
     border: "none",
     borderRadius: 28,
     padding: 20,
-    marginTop: 18,
+    marginTop: 0,
     boxSizing: "border-box",
   },
 
@@ -1579,36 +1579,6 @@ export default function App() {
                     ))}
                   </div>
                 )}
-
-                {showZaikoForm && (
-                  <div style={S.formBox}>
-                    <div style={S.formGrid}>
-                      <div style={S.formGroup}>
-                        <label style={S.label}>品目</label>
-                        <input style={S.input} value={zName} onChange={e => setZName(e.target.value)} placeholder="例：鯛、トマト…" />
-                      </div>
-                      <div style={S.formGroup}>
-                        <label style={S.label}>数量</label>
-                        <input style={S.input} value={zQty} onChange={e => setZQty(e.target.value)} placeholder="例：10kg、5箱" />
-                      </div>
-                      <div style={S.formGroup}>
-                        <label style={S.label}>仕入れ日</label>
-                        <input type="date" style={S.input} value={zDate} onChange={e => setZDate(e.target.value)} />
-                      </div>
-                      <div style={S.formGroup}>
-                        <label style={S.label}>仕入れ単価（円）</label>
-                        <input type="number" style={S.input} value={zBuy} onChange={e => setZBuy(e.target.value)} placeholder="0" />
-                      </div>
-                      <div style={S.formGroup}>
-                        <label style={S.label}>販売単価（円）</label>
-                        <input type="number" style={S.input} value={zSell} onChange={e => setZSell(e.target.value)} placeholder="0" />
-                      </div>
-                      <button style={S.btnPrimary} onClick={addZaiko}>
-                        追加する
-                      </button>
-                    </div>
-                  </div>
-                )}
               </div>
             )}
 
@@ -1709,42 +1679,44 @@ export default function App() {
                 <div style={S.sectionHead}>
                   <div style={S.sectionTitle}>新規開拓</div>
                   <button style={S.btnAddCircle} onClick={() => setShowKaitakuForm(v => !v)}>
-                    ＋
+                    <span style={S.plusIcon}>＋</span>
                   </button>
                 </div>
-
-                {kaitaku.length === 0 && !showKaitakuForm ? (
-                  <div style={S.empty}>
-                    <p>新規開拓メモなし</p>
-                  </div>
-                ) : (
-                  <div style={S.cardGrid}>
-                    {kaitaku.map(item => (
-                      <KaitakuCard
-                        key={item.id}
-                        item={item}
-                        onDelete={deleteKaitaku}
-                        onUpdate={updateKaitaku}
-                      />
-                    ))}
-                  </div>
-                )}
 
                 {showKaitakuForm ? (
                   <div style={S.formBox}>
                     <div style={S.formGrid}>
                       <div style={S.formGroup}>
                         <label style={S.label}>仕入先・品目</label>
-                        <input style={S.input} value={kTitle} onChange={e => setKTitle(e.target.value)} placeholder="例：淡路島たまねぎ" />
+                        <input
+                          style={S.input}
+                          value={kTitle}
+                          onChange={e => setKTitle(e.target.value)}
+                          placeholder="例：淡路島たまねぎ"
+                        />
                       </div>
+
                       <div style={S.formGroup}>
                         <label style={S.label}>URL</label>
-                        <input type="url" style={S.input} value={kUrl} onChange={e => setKUrl(e.target.value)} placeholder="https://..." />
+                        <input
+                          type="url"
+                          style={S.input}
+                          value={kUrl}
+                          onChange={e => setKUrl(e.target.value)}
+                          placeholder="https://..."
+                        />
                       </div>
+
                       <div style={S.formGroup}>
                         <label style={S.label}>メモ・詳細</label>
-                        <textarea style={S.textarea} value={kMemo} onChange={e => setKMemo(e.target.value)} placeholder="産地、特徴、連絡先、価格感など…" />
+                        <textarea
+                          style={S.textarea}
+                          value={kMemo}
+                          onChange={e => setKMemo(e.target.value)}
+                          placeholder="産地、特徴、連絡先、価格感など…"
+                        />
                       </div>
+
                       <button style={S.btnPrimary} onClick={addKaitaku}>
                         追加する
                       </button>
@@ -1766,6 +1738,8 @@ export default function App() {
                     ))}
                   </div>
                 )}
+              </div>
+            )}
 
             {tab === "sold" && (() => {
               const summary = calcSoldSummary(sold, soldSummaryMode);
