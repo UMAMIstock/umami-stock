@@ -1557,11 +1557,11 @@ export default function App() {
                     <div style={S.formGrid}>
                       <div style={S.formGroup}>
                         <label style={S.label}>品目</label>
-                        <input style={S.input} value={zName} onChange={e => setZName(e.target.value)} placeholder="例：鯛、トマト…" />
+                        <input style={S.input} value={zName} onChange={e => setZName(e.target.value)} placeholder="例：ホワイトアスパラ(北海道)…" />
                       </div>
                       <div style={S.formGroup}>
                         <label style={S.label}>数量</label>
-                        <input style={S.input} value={zQty} onChange={e => setZQty(e.target.value)} placeholder="例：10kg、5箱" />
+                        <input style={S.input} value={zQty} onChange={e => setZQty(e.target.value)} placeholder="例：10kg、5pc" />
                       </div>
                       <div style={S.formGroup}>
                         <label style={S.label}>仕入れ日</label>
