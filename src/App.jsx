@@ -360,7 +360,6 @@ const S = {
 
   plusIcon: {
     display: "block",
-    transform: "translateY(-1px)",
     lineHeight: 1,
   },
 
@@ -575,6 +574,7 @@ const S = {
     maxWidth: "100%",
     boxSizing: "border-box",
     appearance: "none",
+    accentColor: T.green,
   },
 
   textarea: {
@@ -631,6 +631,7 @@ const S = {
     maxWidth: "100%",
     boxSizing: "border-box",
     appearance: "none",
+    accentColor: T.green,
   },
 
   editBtns: {
@@ -703,7 +704,7 @@ const S = {
     flex: 1,
     padding: "10px 12px",
     borderRadius: 999,
-    border: `1.5px solid ${T.green}`,
+    border: `1px solid ${T.green}`,
     background: active ? T.green : T.card,
     color: active ? "#fff" : T.green,
     fontSize: 14,
@@ -774,6 +775,12 @@ function ZaikoCard({ item, onDelete, onUpdate, onSold }) {
   const [soldQty, setSoldQty] = useState(item.qty);
   const [soldSell, setSoldSell] = useState(item.sell);
   const [soldDate, setSoldDate] = useState(new Date().toISOString().slice(0, 10));
+  const openSellingForm = () => {
+    setSoldQty(item.qty || "");
+    setSoldSell(item.sell ? String(item.sell) : "");
+    setSoldDate(new Date().toISOString().slice(0, 10));
+    setSelling(true);
+  };
 
   const profit = (item.sell || 0) - (item.buy || 0);
   const ds = daysSince(item.buyDate);
@@ -874,7 +881,7 @@ function ZaikoCard({ item, onDelete, onUpdate, onSold }) {
               </div>
             </div>
           ) : (
-            <button style={S.btnNyuka} onClick={() => setSelling(true)}>販売済み</button>
+            <button style={S.btnNyuka} onClick={openSellingForm}>販売済み</button>
           )}
 
           <button style={S.btnDel} onClick={() => onDelete(item.id)}>削除</button>
@@ -1500,6 +1507,17 @@ export default function App() {
           textarea,
           select {
             -webkit-tap-highlight-color: transparent;
+            accent-color: ${T.green};
+          }
+
+          input[type="date"] {
+            color: ${T.green};
+            accent-color: ${T.green};
+          }
+
+          input[type="date"]::-webkit-calendar-picker-indicator {
+            cursor: pointer;
+            opacity: 0.75;
           }
         `}
       </style>
